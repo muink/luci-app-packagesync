@@ -1,0 +1,15 @@
+{
+  "luci-app-packagesync": {
+    "description": "Grant access to packagesync procedures",
+    "read": {
+      "file": {
+        "/etc/init.d/packagesync": [ "exec" ],
+        "/var/packagesync/releaseslist": [ "read" ]
+      },
+      "uci": [ "packagesync" ]
+    },
+    "write": {
+      "uci": [ "packagesync" ]
+    }
+  }
+}

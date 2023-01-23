@@ -1,0 +1,48 @@
+#!/bin/sh /etc/rc.common
+# Copyright (C) 2023 muink
+
+. /lib/functions.sh
+
+START=99
+USE_PROCD=1
+
+EXTRA_COMMANDS="getver checkln"
+EXTRA_HELP=\
+"	getver		Get releases list
+	checkln		Check home path"
+
+CONFIG_NAME='packagesync'
+TYPEDSECTION='packagesync'
+
+MNTPKGS='/mnt/packagesync'
+DEF_HOMEURL="packagesync"
+DEF_HOMEPATH="/www/$DEF_HOMEURL"
+RELEASES_LIST="/var/packagesync/releaseslist"
+
+if [ "$(uci -q get $CONFIG_NAME.@$TYPEDSECTION[0].proxy_enabled)" == "1" ]; then
+    export ALL_PROXY=$(uci -q get $CONFIG_NAME.@$TYPEDSECTION[0].proxy_protocol)://$(uci -q get $CONFIG_NAME.@$TYPEDSECTION[0].proxy_server)
+fi
+
+
+
+getver() {
+local rawhtml stables releases
+rawhtml="$(curl --connect-timeout 10 --retry 3 -sSL https://downloads.openwrt.org)"
+stables="$( \
+echo "$rawhtml" | sed -n '/Stable Release/,/Development Snapshots/p' \
+| sed -n '/<ul>/,/<\/ul>/p' | grep 'OpenWrt' \
+| sed -E "s|.+\breleases/([\.0-9]+)/.+|\1|g" \
+)"
+releases="$( \
+echo "$rawhtml" | sed -n '/Release Archive/,/\$/p' \
+| sed -n '/<ul>/,/<\/ul>/p' | grep 'OpenWrt' \
+| sed -E "s|.+\breleases/([\.0-9]+)/.+|\1|g" \
+)"
+mkdir -p "${RELEASES_LIST%/*}" 2>/dev/null
+echo -e "$stables\n$releases"
+echo -e "$stables\n$releases" > "$RELEASES_LIST"
+}
+
+restart() {
+	start
+}

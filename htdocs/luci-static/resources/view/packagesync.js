@@ -95,6 +95,28 @@ return view.extend({
 
 		o = s.option(form.Value, 'version', _('Version'));
 		o.rmempty = false;
+		o.validate = function(section, value) {
+			if (value == null || value == '')
+				return _('Expecting: non-empty value');
+			return true;
+		};
+
+		if (releaseslist.length) {
+			for (var i = 0; i < releaseslist.length; i++)
+				o.value(releaseslist[i]);
+		};
+
+		o = s.option(form.Button, '_getversion', _('Get Version'));
+		o.modalonly = true;
+		o.write = function() {};
+		o.onclick = function() {
+			window.setTimeout(function() {
+				window.location = window.location.href.split('#')[0];
+			}, L.env.apply_display * 3000);
+
+			return fs.exec('/etc/init.d/packagesync', ['getver'])
+				.catch(function(e) { ui.addNotification(null, E('p', e.message), 'error') });
+		};
 
 		o = s.option(form.Value, 'target', _('Target'));
 		o.value('x86');

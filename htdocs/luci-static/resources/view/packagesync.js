@@ -1,5 +1,6 @@
 'use strict';
 'require view';
+'require poll';
 'require fs';
 'require uci';
 'require ui';
@@ -81,6 +82,51 @@ return view.extend({
 		o.rmempty = false;
 		o.depends('proxy_enabled', '1');
 		o.retain = true;
+
+		s = m.section(form.GridSection, 'release', _('Mirror Releases'));
+		s.sortable  = true;
+		s.anonymous = true;
+		s.addremove = true;
+
+		o = s.option(form.Flag, 'enabled', _('Enable'));
+		o.default = o.enabled;
+		o.editable = true;
+		o.rmempty = false;
+
+		o = s.option(form.Value, 'version', _('Version'));
+		o.rmempty = false;
+
+		o = s.option(form.Value, 'target', _('Target'));
+		o.value('x86');
+		o.value('ath79');
+		o.value('ar71xx');
+		o.rmempty = false;
+		o.validate = function(section, value) {
+			if (value == null || value == '')
+				return _('Expecting: non-empty value');
+			return true;
+		};
+
+		o = s.option(form.Value, 'subtarget', _('SubTarget'));
+		o.value('64');
+		o.value('generic');
+		o.value('nand');
+		o.rmempty = false;
+		o.validate = function(section, value) {
+			if (value == null || value == '')
+				return _('Expecting: non-empty value');
+			return true;
+		};
+
+		o = s.option(form.Value, 'pkgarch', _('Arch'));
+		o.value('x86_64');
+		o.value('mips_24kc');
+		o.rmempty = false;
+		o.validate = function(section, value) {
+			if (value == null || value == '')
+				return _('Expecting: non-empty value');
+			return true;
+		};
 
 		return m.render();
 	}

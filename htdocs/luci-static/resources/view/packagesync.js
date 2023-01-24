@@ -4,6 +4,7 @@
 'require fs';
 'require uci';
 'require ui';
+'require dom';
 'require form';
 
 var mntpkgs = '/mnt/packagesync';
@@ -129,6 +130,25 @@ return view.extend({
 		o.rmempty = false;
 		o.depends('proxy_enabled', '1');
 		o.retain = true;
+
+		o = s.option(form.Button, '_list_invalid', _('List removable versions'));
+		o.inputtitle = _('List');
+		o.inputstyle = 'apply';
+		if (! storage.length)
+			o.readonly = true;
+		o.onclick = function(ev, section_id) {
+			let precontent = document.getElementById('cleanup-output');
+
+			return fs.exec('/etc/init.d/packagesync', ['cleanup'])
+				.then(function(res) { dom.content(precontent, [ res.stdout.trim().length ? res.stdout.trim() : _('no objects need to remove.'), res.stderr ? res.stderr : '' ]) })
+				.catch(function(err) { ui.addNotification(null, E('p', err.message), 'error') });
+		};
+
+		o = s.option(form.DummyValue, '_removable_versions', ' ');
+		o.rawhtml = true;
+		o.cfgvalue = function(section_id) {
+			return E('pre', { 'id': 'cleanup-output' }, []);
+		};
 
 		s = m.section(form.GridSection, '_storage');
 

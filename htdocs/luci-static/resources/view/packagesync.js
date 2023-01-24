@@ -65,6 +65,14 @@ return view.extend({
 		o = s.option(form.Flag, 'auto_exec', _('Auto Exec'));
 		o.default = o.enabled;
 		o.rmempty = false;
+		o.write = function(section, value) {
+			uci.set('packagesync', section, 'auto_exec', value);
+			if (value == 1) {
+				fs.exec('/etc/init.d/packagesync', ['setcron', uci.get('packagesync', '@packagesync[0]', 'cron_expression')]);
+			} else {
+				fs.exec('/etc/init.d/packagesync', ['setcron']);
+			}
+		};
 
 		o = s.option(form.Value, 'cron_expression', _('Cron expression'),
 			_('The default value is 0:00 every day'));
@@ -73,6 +81,14 @@ return view.extend({
 		o.rmempty = false;
 		o.depends('auto_exec', '1');
 		o.retain = true;
+		o.write = function(section, value) {
+			uci.set('packagesync', section, 'cron_expression', value);
+			fs.exec('/etc/init.d/packagesync', ['setcron', value]);
+		};
+		o.remove = function(section, value) {
+			//uci.unset('packagesync', section, 'cron_expression');
+			fs.exec('/etc/init.d/packagesync', ['setcron']);
+		};
 
 		o = s.option(form.Flag, 'proxy_enabled', _('Enable proxy'));
 		o.rmempty = false;

@@ -49,6 +49,10 @@ return view.extend({
         
 			return true;
 		};
+		o.write = function(section, value) {
+			uci.set('packagesync', section, 'home_url', value);
+			fs.exec('/etc/init.d/packagesync', ['symln', value]);
+		};
 
 		o = s.option(form.Button, '_exec_now', _('Execute'));
 		o.inputtitle = _('Execute');

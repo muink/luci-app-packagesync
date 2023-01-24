@@ -20,11 +20,9 @@ define Package/$(LUCI_NAME)/conffiles
 endef
 
 define Package/$(LUCI_NAME)/postinst
-#!/bin/sh
 endef
 
 define Package/$(LUCI_NAME)/prerm
-#!/bin/sh
 endef
 
 include $(TOPDIR)/feeds/luci/luci.mk

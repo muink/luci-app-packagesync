@@ -4,6 +4,7 @@
     "read": {
       "file": {
         "/etc/init.d/packagesync": [ "exec" ],
+        "/bin/df -hT": [ "exec" ],
         "/var/packagesync/releaseslist": [ "read" ]
       },
       "uci": [ "packagesync" ]

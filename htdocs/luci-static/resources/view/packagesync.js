@@ -6,6 +6,9 @@
 'require ui';
 'require form';
 
+var mntpkgs = '/mnt/packagesync';
+var mntreg = RegExp(/\/mnt\/packagesync/);
+
 return view.extend({
 //	handleSaveApply: null,
 //	handleSave: null,
@@ -15,6 +18,7 @@ return view.extend({
 	return Promise.all([
 		L.resolveDefault(fs.read('/var/packagesync/releaseslist'), null),
 		L.resolveDefault(fs.exec('/etc/init.d/packagesync', ['checkln']), {}),
+		L.resolveDefault(fs.exec('/bin/df', ['-hT']), {}),
 		uci.load('packagesync'),
 	]);
 	},
@@ -22,7 +26,17 @@ return view.extend({
 	render: function(res) {
 		var releaseslist = res[0] ? res[0].trim().split("\n") : [],
 			usedname = res[1].stdout ? res[1].stdout.trim().split("\n") : [],
-			mntpkgs = '/mnt/packagesync';
+			storages = res[2].stdout ? res[2].stdout.trim().split("\n") : [];
+
+		var storage = [];
+		if (storages.length) {
+			for (var i = 1; i < storages.length; i++) {
+				if (storages[i].match(mntreg)) {
+					storage = storages[i].trim().split(/\s+/, 7);
+					break;
+				}
+			}
+		};
 
 		var m, s, o;
 
@@ -57,6 +71,8 @@ return view.extend({
 		o = s.option(form.Button, '_exec_now', _('Execute'));
 		o.inputtitle = _('Execute');
 		o.inputstyle = 'apply';
+		if (! storage.length)
+			o.readonly = true;
 		o.onclick = function() {
 			window.setTimeout(function() {
 				window.location = window.location.href.split('#')[0];
@@ -113,6 +129,35 @@ return view.extend({
 		o.rmempty = false;
 		o.depends('proxy_enabled', '1');
 		o.retain = true;
+
+		s = m.section(form.GridSection, '_storage');
+
+		s.render = L.bind(function(view, section_id) {
+			var table = E('table', { 'class': 'table cbi-section-table', 'id': 'storage_device' }, [
+				E('tr', { 'class': 'tr table-titles' }, [
+					E('th', { 'class': 'th' }, _('Filesystem')),
+					E('th', { 'class': 'th' }, _('Type')),
+					E('th', { 'class': 'th' }, _('Size')),
+					E('th', { 'class': 'th' }, _('Used')),
+					E('th', { 'class': 'th' }, _('Available')),
+					E('th', { 'class': 'th' }, _('Use') + ' %'),
+					E('th', { 'class': 'th' }, _('Mounted on')),
+					E('th', { 'class': 'th cbi-section-actions' }, '')
+				])
+			]);
+			var rows = [];
+			if (storage.length) {
+				storage[5] = E('div', { 'class': 'cbi-progressbar', 'title': storage[5], 'style': 'min-width:8em !important' }, E('div', { 'style': 'width:' + storage[5] }))
+				//storage[5] = E('div', { 'class': 'cbi-progressbar', 'title': storage[3] + ' / ' + storage[2] + ' (' + storage[5] + ')', 'style': 'min-width:8em !important' }, [
+				//	E('div', { 'style': 'width:' + storage[5] })
+				//]);
+				rows.push(storage);
+			};
+
+			cbi_update_table(table, rows, E('em', _('<span style=\'color:red;font-weight:bold\'>Device not exist or mount point in the wrong location<span/>')));
+			return E('div', { 'class': 'cbi-section cbi-tblsection' }, [
+					E('h3', _('Storage Device')), table ]);
+		}, o, this);
 
 		s = m.section(form.GridSection, 'release', _('Mirror Releases'));
 		s.sortable  = true;

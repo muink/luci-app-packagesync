@@ -43,6 +43,18 @@ echo -e "$stables\n$releases"
 echo -e "$stables\n$releases" > "$RELEASES_LIST"
 }
 
+checkln() {
+local home_url home_path
+home_url="$(uci -q get $CONFIG_NAME.@$TYPEDSECTION[0].home_url)"
+home_url="${home_url:-$DEF_HOMEURL}"
+home_path="/www/$home_url"
+
+# clean up old symlink
+ls -l /www|grep "\-> $MNTPKGS"|grep -v " $home_url -> $MNTPKGS"|sed -En "s,.+ ('.+'|\S+) -> ${MNTPKGS}$,'/www/\1',p" | xargs rm -f 
+# show occupied
+find /www/* ! -type l -maxdepth 0|sed "s|.*/||g"
+}
+
 restart() {
 	start
 }

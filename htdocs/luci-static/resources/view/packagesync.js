@@ -21,7 +21,7 @@ return view.extend({
 
 	render: function(res) {
 		var releaseslist = res[0] ? res[0].trim().split("\n") : [],
-			usedname = res[1],
+			usedname = res[1].stdout ? res[1].stdout.trim().split("\n") : [],
 			mntpkgs = '/mnt/packagesync';
 
 		var m, s, o;
@@ -35,9 +35,20 @@ return view.extend({
 			.format(L.url('admin', 'system', 'mounts'), mntpkgs));
 		s.anonymous = true;
 
-		o = s.option(form.Value, 'home_url', _('Home URL'));
+		o = s.option(form.Value, 'home_url', _('Home URL'),
+			_('Open <a href="/%s">URL</a>').format(uci.get('packagesync', '@packagesync[0]', 'home_url')));
 		o.placeholder = 'packagesync';
 		o.rmempty = false;
+		o.validate = function(section, value) {
+			if (value == null || value == '')
+				return _('Expecting: non-empty value');
+        
+			for (var i = 0; i < usedname.length; i++)
+				if (usedname[i] == value)
+					return _('The Name %h is already used').format(value);
+        
+			return true;
+		};
 
 		o = s.option(form.Button, '_exec_now', _('Execute'));
 		o.inputtitle = _('Execute');

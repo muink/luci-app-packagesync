@@ -46,11 +46,15 @@ echo -e "$stables\n$releases"
 echo -e "$stables\n$releases" > "$RELEASES_LIST"
 }
 
-checkln() {
-local home_url home_path
-home_url="$(uci -q get $CONFIG_NAME.@$TYPEDSECTION[0].home_url)"
+gethomeurl() {
+home_url="$1" home_path=
+[ -z "$home_url" ] && home_url="$(uci -q get $CONFIG_NAME.@$TYPEDSECTION[0].home_url)"
 home_url="${home_url:-$DEF_HOMEURL}"
 home_path="/www/$home_url"
+}
+
+checkln() {
+gethomeurl
 
 # clean up old symlink
 ls -l /www|grep "\-> $MNTPKGS"|grep -v " $home_url -> $MNTPKGS"|sed -En "s,.+ ('.+'|\S+) -> ${MNTPKGS}$,'/www/\1',p" | xargs rm -f 
@@ -59,10 +63,7 @@ find /www/* ! -type l -maxdepth 0|sed "s|.*/||g"
 }
 
 symln() {
-local home_url="$1" home_path
-[ -z "$home_url" ] && home_url="$(uci -q get $CONFIG_NAME.@$TYPEDSECTION[0].home_url)"
-home_url="${home_url:-$DEF_HOMEURL}"
-home_path="/www/$home_url"
+gethomeurl "$1"
 
 # make mount dir
 [ -e "$home_path" ] || { ln -s "$MNTPKGS" "$home_path" 2>/dev/null; return 0; }

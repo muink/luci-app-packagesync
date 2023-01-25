@@ -8,11 +8,11 @@ USE_PROCD=1
 
 EXTRA_COMMANDS="getver checkln symln setcron cleanup"
 EXTRA_HELP=\
-"	getver		Get releases list
-	checkln		Check home path
-	symln		Make symlink to mount porint
-	setcron		Add cron expression to crontabs
-	cleanup		Clean up invalid versions"
+"	getver			Get releases list
+	checkln			Check home path
+	symln [home_url]	Make symlink to mount porint
+	setcron [cron]		Add cron expression to crontabs
+	cleanup [autorm]	Clean up invalid versions"
 
 CONFIG_NAME='packagesync'
 TYPEDSECTION='packagesync'
@@ -35,6 +35,10 @@ if [ "$(uci -q get $CONFIG_NAME.@$TYPEDSECTION[0].proxy_enabled)" == "1" ]; then
 fi
 
 
+
+start_service() {
+	return 0
+}
 
 getver() {
 local rawhtml stables releases

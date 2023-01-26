@@ -18,6 +18,7 @@ return view.extend({
 	load: function() {
 	return Promise.all([
 		L.resolveDefault(fs.read('/var/packagesync/releaseslist'), null),
+		L.resolveDefault(fs.stat('/var/packagesync/rsync.lock'), {}),
 		L.resolveDefault(fs.exec('/etc/init.d/packagesync', ['checkln']), {}),
 		L.resolveDefault(fs.exec('/bin/df', ['-hT']), {}),
 		uci.load('packagesync'),
@@ -26,8 +27,9 @@ return view.extend({
 
 	render: function(res) {
 		var releaseslist = res[0] ? res[0].trim().split("\n") : [],
-			usedname = res[1].stdout ? res[1].stdout.trim().split("\n") : [],
-			storages = res[2].stdout ? res[2].stdout.trim().split("\n") : [];
+			locked = res[1].path,
+			usedname = res[2].stdout ? res[2].stdout.trim().split("\n") : [],
+			storages = res[3].stdout ? res[3].stdout.trim().split("\n") : [];
 
 		var storage = [];
 		if (storages.length) {
@@ -58,9 +60,10 @@ return view.extend({
 			if (value == null || value == '')
 				return _('Expecting: non-empty value');
         
-			for (var i = 0; i < usedname.length; i++)
-				if (usedname[i] == value)
-					return _('The Name %h is already used').format(value);
+			if (usedname.length)
+				for (var i = 0; i < usedname.length; i++)
+					if (usedname[i] == value)
+						return _('The Name %h is already used').format(value);
         
 			return true;
 		};
@@ -177,8 +180,8 @@ return view.extend({
 					E('th', { 'class': 'th' }, _('Size')),
 					E('th', { 'class': 'th' }, _('Used')),
 					E('th', { 'class': 'th' }, _('Available')),
-					E('th', { 'class': 'th' }, _('Use') + ' %'),
-					E('th', { 'class': 'th' }, _('Mounted on')),
+					E('th', { 'class': 'th' }, _('Used') + ' %'),
+					E('th', { 'class': 'th' }, _('Mount point')),
 					E('th', { 'class': 'th cbi-section-actions' }, '')
 				])
 			]);

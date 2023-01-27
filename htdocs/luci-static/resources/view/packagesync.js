@@ -39,7 +39,7 @@ return view.extend({
 	load: function() {
 	return Promise.all([
 		L.resolveDefault(fs.read('/var/packagesync/releaseslist'), null),
-		L.resolveDefault(fs.stat('/var/packagesync/rsync.lock'), {}),
+		L.resolveDefault(fs.stat('/var/run/packagesync.pid'), {}),
 		L.resolveDefault(fs.exec('/etc/init.d/packagesync', ['checkln']), {}),
 		L.resolveDefault(fs.exec('/bin/df', ['-hT']), {}),
 		getServiceStatus(),
@@ -131,7 +131,7 @@ return view.extend({
 		o = s.option(form.Button, '_exec_now', _('Execute'));
 		o.inputtitle = _('Execute');
 		o.inputstyle = 'apply';
-		if (! storage.length)
+		if ((! storage.length) || locked)
 			o.readonly = true;
 		o.onclick = function() {
 			window.setTimeout(function() {

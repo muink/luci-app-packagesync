@@ -37,6 +37,8 @@ fi
 
 
 start_service() {
+	procd_set_param pidfile /var/run/packagesync.pid
+	[ -n "$(cat /var/run/packagesync.pid 2>/dev/null)" ] && return 1
 	return 0
 }
 

@@ -5,7 +5,8 @@
       "file": {
         "/etc/init.d/packagesync": [ "exec" ],
         "/bin/df -hT": [ "exec" ],
-        "/var/packagesync/releaseslist": [ "read" ]
+        "/var/packagesync/releaseslist": [ "read" ],
+        "/var/run/packagesync.pid": [ "read" ]
       },
       "ubus": {
         "service": [ "list" ]

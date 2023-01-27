@@ -7,6 +7,9 @@
         "/bin/df -hT": [ "exec" ],
         "/var/packagesync/releaseslist": [ "read" ]
       },
+      "ubus": {
+        "service": [ "list" ]
+      },
       "uci": [ "packagesync" ]
     },
     "write": {

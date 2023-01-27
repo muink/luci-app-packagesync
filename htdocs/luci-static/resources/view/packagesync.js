@@ -5,10 +5,31 @@
 'require uci';
 'require ui';
 'require dom';
+'require rpc';
 'require form';
 
 var mntpkgs = '/mnt/packagesync';
 var mntreg = RegExp(/\/mnt\/packagesync/);
+var conf = 'packagesync';
+var instance = 'rsync';
+
+var callServiceList = rpc.declare({
+	object: 'service',
+	method: 'list',
+	params: ['name'],
+	expect: { '': {} }
+});
+
+function getServiceStatus() {
+	return L.resolveDefault(callServiceList(conf), {})
+		.then(function (res) {
+			var isrunning = false;
+			try {
+				isrunning = res[conf]['instances'][instance]['running'];
+			} catch (e) { }
+			return isrunning;
+		});
+}
 
 return view.extend({
 //	handleSaveApply: null,
@@ -21,15 +42,29 @@ return view.extend({
 		L.resolveDefault(fs.stat('/var/packagesync/rsync.lock'), {}),
 		L.resolveDefault(fs.exec('/etc/init.d/packagesync', ['checkln']), {}),
 		L.resolveDefault(fs.exec('/bin/df', ['-hT']), {}),
-		uci.load('packagesync'),
+		getServiceStatus(),
+		uci.load('packagesync')
 	]);
+	},
+
+	poll_status: function(nodes, stat) {
+		var isRunning = stat[0],
+			view = nodes.querySelector('#sync_status');
+
+		if (isRunning) {
+			view.innerHTML = "<span style=\"color:green;font-weight:bold\">" + _("SYNC IN PROGRESS") + "</span>";
+		} else {
+			view.innerHTML = "<span style=\"color:red;font-weight:bold\">" + _("SYNC NOT IN PROGRESS") + "</span>";
+		}
+		return;
 	},
 
 	render: function(res) {
 		var releaseslist = res[0] ? res[0].trim().split("\n") : [],
 			locked = res[1].path,
 			usedname = res[2].stdout ? res[2].stdout.trim().split("\n") : [],
-			storages = res[3].stdout ? res[3].stdout.trim().split("\n") : [];
+			storages = res[3].stdout ? res[3].stdout.trim().split("\n") : [],
+			isRunning = res[4];
 
 		var storage = [];
 		if (storages.length) {
@@ -51,6 +86,27 @@ return view.extend({
 			then open <a href="%s"><b>Mount Points</b></a>, find the connected device and set its mount point to <b>%s</b>, check <b>Enabled</b> and click <b>Save&Apple</b>')
 			.format(L.url('admin', 'system', 'mounts'), mntpkgs));
 		s.anonymous = true;
+
+		o = s.option(form.DummyValue, '_status', _('Running Status'));
+		o.rawhtml = true;
+
+		if (isRunning) {
+			o.cfgvalue = function(s) {
+				return E('div', { class: 'cbi-section' }, [
+					E('div', { id: 'sync_status' }, [
+						E('span', { 'style': 'color:green;font-weight:bold' }, [ _("SYNC IN PROGRESS") ])
+					])
+				]);
+			}
+		} else {
+			o.cfgvalue = function(s) {
+				return E('div', { class: 'cbi-section' }, [
+					E('div', { id: 'sync_status' }, [
+						E('span', { 'style': 'color:red;font-weight:bold' }, [ _("SYNC NOT IN PROGRESS") ])
+					])
+				]);
+			}
+		};
 
 		o = s.option(form.Value, 'home_url', _('Home URL'),
 			_('Open <a href="/%s">URL</a>').format(uci.get('packagesync', '@packagesync[0]', 'home_url')));
@@ -266,6 +322,14 @@ return view.extend({
 			return true;
 		};
 
-		return m.render();
+		return m.render()
+		.then(L.bind(function(m, nodes) {
+			poll.add(L.bind(function() {
+				return Promise.all([
+					getServiceStatus()
+				]).then(L.bind(this.poll_status, this, nodes));
+			}, this), 3);
+			return nodes;
+		}, this, m));
 	}
 });

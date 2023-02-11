@@ -40,6 +40,8 @@ return view.extend({
 	load: function() {
 	return Promise.all([
 		L.resolveDefault(fs.read('/var/packagesync/releaseslist'), null),
+		L.resolveDefault(fs.read('/var/packagesync/targetslist'), null),
+		L.resolveDefault(fs.read('/var/packagesync/pkgarchslist'), null),
 		L.resolveDefault(fs.stat('/var/run/packagesync.pid'), {}),
 		L.resolveDefault(fs.exec('/etc/init.d/packagesync', ['checkln']), {}),
 		L.resolveDefault(fs.exec('/bin/df', ['-hT']), {}),
@@ -62,10 +64,12 @@ return view.extend({
 
 	render: function(res) {
 		var releaseslist = res[0] ? res[0].trim().split("\n") : [],
-			locked = res[1].path,
-			usedname = res[2].stdout ? res[2].stdout.trim().split("\n") : [],
-			storages = res[3].stdout ? res[3].stdout.trim().split("\n") : [],
-			isRunning = res[4];
+			targetslist = res[1] ? res[1].trim().split("\n") : [],
+			pkgarchslist = res[2] ? res[2].trim().split("\n") : [],
+			locked = res[3].path,
+			usedname = res[4].stdout ? res[4].stdout.trim().split("\n") : [],
+			storages = res[5].stdout ? res[5].stdout.trim().split("\n") : [],
+			isRunning = res[6];
 
 		var storage = [];
 		if (storages.length) {
@@ -285,6 +289,18 @@ return view.extend({
 		o.editable = true;
 		o.rmempty = false;
 
+		o = s.option(form.Button, '_getinfo', _('Get Info'));
+		o.modalonly = true;
+		o.write = function() {};
+		o.onclick = function() {
+			window.setTimeout(function() {
+				window.location = window.location.href.split('#')[0];
+			}, L.env.apply_display * 4500);
+
+			return fs.exec('/etc/init.d/packagesync', ['getinfo'])
+				.catch(function(e) { ui.addNotification(null, E('p', e.message), 'error') });
+		};
+
 		o = s.option(form.Value, 'version', _('Version'));
 		o.rmempty = false;
 		o.validate = function(section, value) {
@@ -298,22 +314,7 @@ return view.extend({
 				o.value(releaseslist[i]);
 		};
 
-		o = s.option(form.Button, '_getversion', _('Get Version'));
-		o.modalonly = true;
-		o.write = function() {};
-		o.onclick = function() {
-			window.setTimeout(function() {
-				window.location = window.location.href.split('#')[0];
-			}, L.env.apply_display * 3000);
-
-			return fs.exec('/etc/init.d/packagesync', ['getver'])
-				.catch(function(e) { ui.addNotification(null, E('p', e.message), 'error') });
-		};
-
 		o = s.option(form.Value, 'target', _('Target'));
-		o.value('x86');
-		o.value('ath79');
-		o.value('ar71xx');
 		o.rmempty = false;
 		o.validate = function(section, value) {
 			if (value == null || value == '' || value == 'ignore')
@@ -321,10 +322,19 @@ return view.extend({
 			return true;
 		};
 
+		if (targetslist.length) {
+			for (var i = 0; i < targetslist.length; i++)
+				o.value(targetslist[i]);
+		};
+
 		o = s.option(form.Value, 'subtarget', _('SubTarget'));
+		o.value('32');
 		o.value('64');
 		o.value('generic');
+		o.value('legacy');
 		o.value('nand');
+		o.value('mikrotik');
+		o.value('armv8');
 		o.rmempty = false;
 		o.validate = function(section, value) {
 			if (value == null || value == '' || value == 'ignore')
@@ -333,13 +343,16 @@ return view.extend({
 		};
 
 		o = s.option(form.Value, 'pkgarch', _('Arch'));
-		o.value('x86_64');
-		o.value('mips_24kc');
 		o.rmempty = false;
 		o.validate = function(section, value) {
 			if (value == null || value == '' || value == 'ignore')
 				return _('Expecting: non-empty value');
 			return true;
+		};
+
+		if (pkgarchslist.length) {
+			for (var i = 0; i < pkgarchslist.length; i++)
+				o.value(pkgarchslist[i]);
 		};
 
 		return m.render()

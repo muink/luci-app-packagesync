@@ -6,9 +6,9 @@
 START=99
 USE_PROCD=1
 
-EXTRA_COMMANDS="getver checkln symln setcron cleanup"
+EXTRA_COMMANDS="getinfo checkln symln setcron cleanup"
 EXTRA_HELP=\
-"	getver			Get releases list
+"	getinfo			Get releases/targets/archs list
 	checkln			Check home path
 	symln [home_url]	Make symlink to mount porint
 	setcron [cron]		Add cron expression to crontabs
@@ -23,6 +23,8 @@ CRONTABS='/etc/crontabs/root'
 DEF_HOMEURL="packagesync"
 DEF_HOMEPATH="/www/$DEF_HOMEURL"
 RELEASES_LIST="/var/packagesync/releaseslist"
+TARGETS_LIST="/var/packagesync/targetslist"
+PKGARCHS_LIST="/var/packagesync/pkgarchslist"
 # url path
 URLPATH_RELEASES='releases'
 URLPATH_SNAPSHOTS='snapshots'
@@ -42,8 +44,8 @@ start_service() {
 	return 0
 }
 
-getver() {
-local rawhtml stables releases
+getinfo() {
+local rawhtml stables releases targets pkgarchs
 rawhtml="$(curl --connect-timeout 10 --retry 3 -sSL https://downloads.openwrt.org)"
 stables="$( \
 echo "$rawhtml" | sed -n '/Stable Release/,/Development Snapshots/p' \
@@ -55,9 +57,30 @@ echo "$rawhtml" | sed -n '/Release Archive/,/\$/p' \
 | sed -n '/<ul>/,/<\/ul>/p' | grep 'OpenWrt' \
 | sed -E "s|.+\breleases/([\.0-9]+)/.+|\1|g" \
 )"
+rawhtml="$(curl --connect-timeout 10 --retry 3 -sSL https://downloads.openwrt.org/releases/$(echo "$stables"|head -n1)/targets)"
+targets="$( \
+echo "$rawhtml" \
+| sed -n '/<table>/,/<\/table>/p' | grep '<a href=' \
+| sed -E "s|.+\bhref=\"([^/]+)/.+|\1|g" \
+)"
+rawhtml="$(curl --connect-timeout 10 --retry 3 -sSL https://downloads.openwrt.org/releases/$(echo "$stables"|head -n1)/packages)"
+pkgarchs="$( \
+echo "$rawhtml" \
+| sed -n '/<table>/,/<\/table>/p' | grep '<a href=' \
+| sed -E "s|.+\bhref=\"([^/]+)/.+|\1|g" \
+)"
 mkdir -p "${RELEASES_LIST%/*}" 2>/dev/null
+echo -e "Releases:"
 echo -e "$stables\n$releases"
 echo -e "$stables\n$releases" > "$RELEASES_LIST"
+mkdir -p "${TARGETS_LIST%/*}" 2>/dev/null
+echo "Targets:"
+echo "$targets"
+echo "$targets" > "$TARGETS_LIST"
+mkdir -p "${PKGARCHS_LIST%/*}" 2>/dev/null
+echo "PKGArchs:"
+echo "$pkgarchs"
+echo "$pkgarchs" > "$PKGARCHS_LIST"
 }
 
 gethomeurl() {

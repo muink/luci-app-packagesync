@@ -29,11 +29,11 @@ TARGETS_LIST="/var/packagesync/targetslist"
 PKGARCHS_LIST="/var/packagesync/pkgarchslist"
 # url path
 OPENWRT_URL="https://downloads.openwrt.org"
-URLPATH_RELEASES='releases'
-URLPATH_SNAPSHOTS='snapshots'
-URLPATH_PACKAGES_PREFIX='packages-' # packages-22.03
-URLPATH_VERS_PACKAGES='packages'
-URLPATH_VERS_TARGETS='targets'
+URLHREF_RELEASES='releases'
+URLHREF_SNAPSHOTS='snapshots'
+URLHREF_PACKAGES_PREFIX='packages-' # packages-22.03
+URLHREF_VERS_PACKAGES='packages'
+URLHREF_VERS_TARGETS='targets'
 
 if [ "$(uci -q get $CONFIG_NAME.@$TYPEDSECTION[0].proxy_enabled)" == "1" ]; then
     export ALL_PROXY=$(uci -q get $CONFIG_NAME.@$TYPEDSECTION[0].proxy_protocol)://$(uci -q get $CONFIG_NAME.@$TYPEDSECTION[0].proxy_server)
@@ -118,13 +118,13 @@ echo "$rawhtml" | sed -n '/Release Archive/,/\$/p' \
 | sed -n '/<ul>/,/<\/ul>/p' | grep 'OpenWrt' \
 | sed -E "s|.+\breleases/([\.0-9]+)/.+|\1|g" \
 )"
-rawhtml="$(curl --connect-timeout 10 --retry 3 -sSL "$OPENWRT_URL/$URLPATH_RELEASES/$(echo "$stables"|head -n1)/$URLPATH_VERS_TARGETS")"
+rawhtml="$(curl --connect-timeout 10 --retry 3 -sSL "$OPENWRT_URL/$URLHREF_RELEASES/$(echo "$stables"|head -n1)/$URLHREF_VERS_TARGETS")"
 targets="$( \
 echo "$rawhtml" \
 | sed -n '/<table>/,/<\/table>/p' | grep '<a href=' \
 | sed -E "s|.+\bhref=\"([^/]+)/.+|\1|g" \
 )"
-rawhtml="$(curl --connect-timeout 10 --retry 3 -sSL "$OPENWRT_URL/$URLPATH_RELEASES/$(echo "$stables"|head -n1)/$URLPATH_VERS_PACKAGES")"
+rawhtml="$(curl --connect-timeout 10 --retry 3 -sSL "$OPENWRT_URL/$URLHREF_RELEASES/$(echo "$stables"|head -n1)/$URLHREF_VERS_PACKAGES")"
 pkgarchs="$( \
 echo "$rawhtml" \
 | sed -n '/<table>/,/<\/table>/p' | grep '<a href=' \
@@ -186,7 +186,7 @@ local autorm="$1"
 gethomeurl
 
 local count targets packages pkgarchs
-[ -d "$home_path/$URLPATH_RELEASES" ] || return 1
+[ -d "$home_path/$URLHREF_RELEASES" ] || return 1
 
 count=$(uci -q show $CONFIG_NAME|grep "=$RELEASE"|sed -E "s|.+@$RELEASE\[(\d+)\].+|\1|"|tail -n1)
 
@@ -195,17 +195,17 @@ for i in $(seq 0 $count); do
 	for _var in $ucivv; do
 		eval "local $_var=\$(uci -q get $CONFIG_NAME.@$RELEASE[$i].$_var)"
 	done
-	targets="${targets:+$targets|}/$version/$URLPATH_VERS_TARGETS/$target/$subtarget\b"
-	packages="${packages:+$packages|}/$version/$URLPATH_VERS_PACKAGES\b"
-	pkgarchs="${pkgarchs:+$pkgarchs|}/$URLPATH_PACKAGES_PREFIX${version%\.*}/$pkgarch\b"
+	targets="${targets:+$targets|}/$version/$URLHREF_VERS_TARGETS/$target/$subtarget\b"
+	packages="${packages:+$packages|}/$version/$URLHREF_VERS_PACKAGES\b"
+	pkgarchs="${pkgarchs:+$pkgarchs|}/$URLHREF_PACKAGES_PREFIX${version%\.*}/$pkgarch\b"
 done
 #echo "$targets"
 #echo "$packages"
 #echo "$pkgarchs"
 
 local rm_path="$(\
-find $home_path/$URLPATH_RELEASES/* -type d -o -type l -maxdepth 3|grep -Ev "$targets"|grep -Ev "$packages"|grep -Ev "$pkgarchs"\
-|grep -E "(/\d+\.\d+[^/]*/($URLPATH_VERS_PACKAGES|$URLPATH_VERS_TARGETS/[^/]+/[^/]+)\$|/${URLPATH_PACKAGES_PREFIX}\d+\.\d+/[^/]+\$)"\
+find $home_path/$URLHREF_RELEASES/* -type d -o -type l -maxdepth 3|grep -Ev "$targets"|grep -Ev "$packages"|grep -Ev "$pkgarchs"\
+|grep -E "(/\d+\.\d+[^/]*/($URLHREF_VERS_PACKAGES|$URLHREF_VERS_TARGETS/[^/]+/[^/]+)\$|/${URLHREF_PACKAGES_PREFIX}\d+\.\d+/[^/]+\$)"\
 )"
 echo "$rm_path"|sed 's|^/|rm /|g'
 [ -z "$autorm" ] && return 0 || echo "$rm_path" | xargs rm -rf 

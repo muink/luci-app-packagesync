@@ -11,6 +11,7 @@
 var mntpkgs = '/mnt/packagesync';
 var mntreg = RegExp(/\/mnt\/packagesync/);
 var conf = 'packagesync';
+var release = 'release';
 var instance = 'rsync';
 
 var callServiceList = rpc.declare({
@@ -259,6 +260,25 @@ return view.extend({
 		s.sortable  = true;
 		s.anonymous = true;
 		s.addremove = true;
+
+		o = s.option(form.Value, 'name', _('Nick name'));
+		o.datatype = 'uciname';
+		o.rmempty = false;
+		o.validate = function(section_id, value) {
+			if (value == null || value == '' || value == 'ignore')
+				return _('Expecting: non-empty value');
+
+			let ss = uci.sections(conf, release);
+			for (var i = 0; i < ss.length; i++) {
+				let sid = ss[i]['.name'];
+				if (sid == section_id)
+					continue;
+				if (value == uci.get(conf, sid, 'name'))
+					return _('The Nick name is already used');
+			};
+
+			return true;
+		};
 
 		o = s.option(form.Flag, 'enabled', _('Enable'));
 		o.default = o.enabled;

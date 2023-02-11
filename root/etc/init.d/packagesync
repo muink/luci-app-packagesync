@@ -20,15 +20,18 @@ RELEASE='release'
 
 MNTPKGS='/mnt/packagesync'
 CRONTABS='/etc/crontabs/root'
+SYNCEXE='/usr/libexec/packagesync/sync'
+PIDFILE='/var/run/packagesync.pid'
 DEF_HOMEURL="packagesync"
 DEF_HOMEPATH="/www/$DEF_HOMEURL"
 RELEASES_LIST="/var/packagesync/releaseslist"
 TARGETS_LIST="/var/packagesync/targetslist"
 PKGARCHS_LIST="/var/packagesync/pkgarchslist"
 # url path
+OPENWRT_URL="https://downloads.openwrt.org"
 URLPATH_RELEASES='releases'
 URLPATH_SNAPSHOTS='snapshots'
-URLPATH_PACKAGES_VERS='packages-' # packages-22.03
+URLPATH_PACKAGES_PREFIX='packages-' # packages-22.03
 URLPATH_VERS_PACKAGES='packages'
 URLPATH_VERS_TARGETS='targets'
 
@@ -38,15 +41,73 @@ fi
 
 
 
+validate_section_release() {
+	uci_load_validate $CONFIG_NAME $RELEASE "$1" "$2" \
+		'enabled:bool:0' \
+		'name:uciname' \
+		'version:string' \
+		'target:string' \
+		'subtarget:string' \
+		'pkgarch:string'
+}
+
+gen_order() {
+	[ "$2" == "0" ] || { >&2 echo "section $1 validation failed"; return 1; }
+	[ "$enabled" == "0" ] && return 1
+
+	orders="${orders:+$orders, }{'name': '$name', 'version': '$version', 'target': '$target/$subtarget', 'arch': '$pkgarch'}"
+}
+
+sync_instance() {
+	[ -z "$1" ] && return 1
+
+	procd_open_instance 'sync'
+	procd_set_param command "$SYNCEXE" -o "{[ $1 ]}"
+	procd_append_param command -l "$bwlimit" -d "$homepath"
+	procd_set_param respawn
+	#procd_set_param stdout 1
+	procd_set_param stderr 1
+	procd_set_param user nobody
+	procd_set_param pidfile "$PIDFILE"
+	procd_close_instance
+}
+
 start_service() {
-	procd_set_param pidfile /var/run/packagesync.pid
-	[ -n "$(cat /var/run/packagesync.pid 2>/dev/null)" ] && return 1
+	# locked file check
+	[ -n "$(cat "$PIDFILE" 2>/dev/null)" ] && return 1
+
+	local homeurl homepath bwlimit
+	config_load $CONFIG_NAME
+	eval "homeurl=\$CONFIG_${CONFIG_SECTIONS%% *}_home_url"
+	[ -n "$homeurl" ] && homepath="/www/$homeurl" || homepath="$DEF_HOMEPATH"
+	[ -d "$homepath" ] || { >&2 echo -e "$CONFIG_NAME: The Home Path '$homepath' is invalid. please check the 'home_url'"; return 1; }
+	eval "bwlimit=\$CONFIG_${CONFIG_SECTIONS%% *}_bwlimit"
+
+	local orders=''
+	config_foreach validate_section_release $RELEASE gen_order
+
+	sync_instance "$orders"
+	#$SYNCEXE -l|--bwlimit "$bwlimit" -d|--homedir "$homepath" -n|--name "x64_21_02_5" -s|--version "21.02.5" -t|--target "x86/64" -k|--arch "x86_64";
+	#$SYNCEXE -l|--bwlimit "$bwlimit" -d|--homedir "$homepath" -n|--name "x64_22_03_2" -s|--version "22.03.2" -t|--target "x86/64" -k|--arch "x86_64";
+	#$SYNCEXE -l|--bwlimit "$bwlimit" -d|--homedir "$homepath" -n|--name "ath79_21_02_5" -s|--version "21.02.5" -t|--target "ath79/nand" -k|--arch "mips_24kc";
+	#$SYNCEXE -l|--bwlimit "$bwlimit" -d|--homedir "$homepath" -n|--name "ath79_22_03_2" -s|--version "22.03.2" -t|--target "ath79/nand" -k|--arch "mips_24kc";
+    #
+	#$SYNCEXE -l|--bwlimit "$bwlimit" -o|--orders '{[ {"homedir": "$homepath", "name": "x64_21_02_5", "version": "21.02.5", "target": "x86/64", "arch": "x86_64"}, \
+	#												{"homedir": "$homepath", "name": "x64_22_03_2", "version": "22.03.2", "target": "x86/64", "arch": "x86_64"}, \
+	#												{"homedir": "$homepath", "name": "ath79_21_02_5", "version": "21.02.5", "target": "ath79/nand", "arch": "mips_24kc"}, \
+	#												{"homedir": "$homepath", "name": "ath79_22_03_2", "version": "22.03.2", "target": "ath79/nand", "arch": "mips_24kc"} ]}'
+    #
+	#$SYNCEXE -l|--bwlimit "$bwlimit" -d|--homedir "$homepath" -o|--orders '{[ {"name": "x64_21_02_5", "version": "21.02.5", "target": "x86/64", "arch": "x86_64"}, \
+	#																			{"name": "x64_22_03_2", "version": "22.03.2", "target": "x86/64", "arch": "x86_64"}, \
+	#																			{"name": "ath79_21_02_5", "version": "21.02.5", "target": "ath79/nand", "arch": "mips_24kc"}, \
+	#																			{"name": "ath79_22_03_2", "version": "22.03.2", "target": "ath79/nand", "arch": "mips_24kc"} ]}'
+
 	return 0
 }
 
 getinfo() {
 local rawhtml stables releases targets pkgarchs
-rawhtml="$(curl --connect-timeout 10 --retry 3 -sSL https://downloads.openwrt.org)"
+rawhtml="$(curl --connect-timeout 10 --retry 3 -sSL "$OPENWRT_URL")"
 stables="$( \
 echo "$rawhtml" | sed -n '/Stable Release/,/Development Snapshots/p' \
 | sed -n '/<ul>/,/<\/ul>/p' | grep 'OpenWrt' \
@@ -57,13 +118,13 @@ echo "$rawhtml" | sed -n '/Release Archive/,/\$/p' \
 | sed -n '/<ul>/,/<\/ul>/p' | grep 'OpenWrt' \
 | sed -E "s|.+\breleases/([\.0-9]+)/.+|\1|g" \
 )"
-rawhtml="$(curl --connect-timeout 10 --retry 3 -sSL https://downloads.openwrt.org/releases/$(echo "$stables"|head -n1)/targets)"
+rawhtml="$(curl --connect-timeout 10 --retry 3 -sSL "$OPENWRT_URL/$URLPATH_RELEASES/$(echo "$stables"|head -n1)/$URLPATH_VERS_TARGETS")"
 targets="$( \
 echo "$rawhtml" \
 | sed -n '/<table>/,/<\/table>/p' | grep '<a href=' \
 | sed -E "s|.+\bhref=\"([^/]+)/.+|\1|g" \
 )"
-rawhtml="$(curl --connect-timeout 10 --retry 3 -sSL https://downloads.openwrt.org/releases/$(echo "$stables"|head -n1)/packages)"
+rawhtml="$(curl --connect-timeout 10 --retry 3 -sSL "$OPENWRT_URL/$URLPATH_RELEASES/$(echo "$stables"|head -n1)/$URLPATH_VERS_PACKAGES")"
 pkgarchs="$( \
 echo "$rawhtml" \
 | sed -n '/<table>/,/<\/table>/p' | grep '<a href=' \
@@ -136,7 +197,7 @@ for i in $(seq 0 $count); do
 	done
 	targets="${targets:+$targets|}/$version/$URLPATH_VERS_TARGETS/$target/$subtarget\b"
 	packages="${packages:+$packages|}/$version/$URLPATH_VERS_PACKAGES\b"
-	pkgarchs="${pkgarchs:+$pkgarchs|}/$URLPATH_PACKAGES_VERS${version%\.*}/$pkgarch\b"
+	pkgarchs="${pkgarchs:+$pkgarchs|}/$URLPATH_PACKAGES_PREFIX${version%\.*}/$pkgarch\b"
 done
 #echo "$targets"
 #echo "$packages"
@@ -144,7 +205,7 @@ done
 
 local rm_path="$(\
 find $home_path/$URLPATH_RELEASES/* -type d -o -type l -maxdepth 3|grep -Ev "$targets"|grep -Ev "$packages"|grep -Ev "$pkgarchs"\
-|grep -E "(/\d+\.\d+[^/]*/($URLPATH_VERS_PACKAGES|$URLPATH_VERS_TARGETS/[^/]+/[^/]+)\$|/${URLPATH_PACKAGES_VERS}\d+\.\d+/[^/]+\$)"\
+|grep -E "(/\d+\.\d+[^/]*/($URLPATH_VERS_PACKAGES|$URLPATH_VERS_TARGETS/[^/]+/[^/]+)\$|/${URLPATH_PACKAGES_PREFIX}\d+\.\d+/[^/]+\$)"\
 )"
 echo "$rm_path"|sed 's|^/|rm /|g'
 [ -z "$autorm" ] && return 0 || echo "$rm_path" | xargs rm -rf 

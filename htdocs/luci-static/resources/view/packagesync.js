@@ -12,7 +12,7 @@ var mntpkgs = '/mnt/packagesync';
 var mntreg = RegExp(/\/mnt\/packagesync/);
 var conf = 'packagesync';
 var release = 'release';
-var instance = 'rsync';
+var instance = 'sync';
 
 var callServiceList = rpc.declare({
 	object: 'service',
@@ -289,7 +289,7 @@ return view.extend({
 		o.editable = true;
 		o.rmempty = false;
 
-		o = s.option(form.Button, '_getinfo', _('Get Info'));
+		o = s.option(form.Button, '_getinfo', _('Get Option Info'));
 		o.modalonly = true;
 		o.write = function() {};
 		o.onclick = function() {

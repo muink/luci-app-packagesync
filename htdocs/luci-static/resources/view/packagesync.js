@@ -113,7 +113,7 @@ return view.extend({
 		o.placeholder = 'packagesync';
 		o.rmempty = false;
 		o.validate = function(section, value) {
-			if (value == null || value == '')
+			if (value == null || value == '' || value == 'ignore')
 				return _('Expecting: non-empty value');
         
 			if (usedname.length)
@@ -268,7 +268,7 @@ return view.extend({
 		o = s.option(form.Value, 'version', _('Version'));
 		o.rmempty = false;
 		o.validate = function(section, value) {
-			if (value == null || value == '')
+			if (value == null || value == '' || value == 'ignore')
 				return _('Expecting: non-empty value');
 			return true;
 		};
@@ -296,7 +296,7 @@ return view.extend({
 		o.value('ar71xx');
 		o.rmempty = false;
 		o.validate = function(section, value) {
-			if (value == null || value == '')
+			if (value == null || value == '' || value == 'ignore')
 				return _('Expecting: non-empty value');
 			return true;
 		};
@@ -307,7 +307,7 @@ return view.extend({
 		o.value('nand');
 		o.rmempty = false;
 		o.validate = function(section, value) {
-			if (value == null || value == '')
+			if (value == null || value == '' || value == 'ignore')
 				return _('Expecting: non-empty value');
 			return true;
 		};
@@ -317,7 +317,7 @@ return view.extend({
 		o.value('mips_24kc');
 		o.rmempty = false;
 		o.validate = function(section, value) {
-			if (value == null || value == '')
+			if (value == null || value == '' || value == 'ignore')
 				return _('Expecting: non-empty value');
 			return true;
 		};

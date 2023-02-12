@@ -13,10 +13,162 @@ DEF_HOMEURL="packagesync"
 DEF_HOMEPATH="/www/$DEF_HOMEURL"
 # url path
 OPENWRT_URL="https://downloads.openwrt.org"
+RSYNC_URL="rsync://downloads.openwrt.org/downloads"
 URLHREF_RELEASES='releases'
 URLHREF_SNAPSHOTS='snapshots'
 URLHREF_PACKAGES_PREFIX='packages-' # packages-22.03
 URLHREF_VERS_PACKAGES='packages'
 URLHREF_VERS_TARGETS='targets'
+# rsync default options
+ARCHIVE='-a' # or '-rlpt' (no root)
+INFO='vhi'
+COMPAC='--compress'
+PRUNE='--delete'
+PROGR='--progress'
+BWLIMIT='800'
 
+
+# Get parameters
+GETOPT=$(getopt -n $(basename $0) -o x:l:d:n:s:t:k:o:V -l proxy:,bwlimit:,homedir:,name:,version:,target:,arch:,orders:,Version,help -- "$@")
+[ $? -ne 0 ] && >&2 echo -e "\tUse the --help option get help" && exit 1
+eval set -- "$GETOPT"
+OPTIONS=$(echo "$GETOPT" | sed -E "s|'[^']*'||g; s| --( .*)?$||")
+
+# Duplicate options
+for ru in --help\|--help -V\|--Version -x\|--proxy -l\|--bwlimit -d\|--homedir -n\|--name -s\|--version -t\|--target -k\|--arch -o\|--orders; do
+  eval "echo \"\$OPTIONS\" | grep -E \" ${ru%|*}[ .+]* ($ru)| ${ru#*|}[ .+]* ($ru)\" >/dev/null && >&2 echo \"\$(basename \$0): Option '\$ru' option is repeated\" && exit 1"
+done
+# Independent options
+for ru in --help\|--help -V\|--Version; do
+  eval "echo \"\$OPTIONS\" | grep -E \"^ ($ru) .+|.+ ($ru) .+|.+ ($ru) *\$\" >/dev/null && >&2 echo \"\$(basename \$0): Option '\$(echo \"\$OPTIONS\" | sed -E \"s,^.*($ru).*\$,\\1,\")' cannot be used with other options\" && exit 1"
+done
+# Conflicting options
+echo "$OPTIONS" | grep -E " (-o|--orders)\b" | grep -E " (-n|--name)\b" >/dev/null && >&2 echo "$(basename $0): Option '-o|--orders' cannot be used with option '-n|--name'" && exit 1
+echo "$OPTIONS" | grep -E " (-o|--orders)\b" | grep -E " (-s|--version)\b" >/dev/null && >&2 echo "$(basename $0): Option '-o|--orders' cannot be used with option '-s|--version'" && exit 1
+echo "$OPTIONS" | grep -E " (-o|--orders)\b" | grep -E " (-t|--target)\b" >/dev/null && >&2 echo "$(basename $0): Option '-o|--orders' cannot be used with option '-t|--target'" && exit 1
+echo "$OPTIONS" | grep -E " (-o|--orders)\b" | grep -E " (-k|--arch)\b" >/dev/null && >&2 echo "$(basename $0): Option '-o|--orders' cannot be used with option '-k|--arch'" && exit 1
+# Required options
+[    -n "$(echo "$OPTIONS" | grep -E " (-d|--homedir)\b" | grep -E " (-s|--version)\b" | grep -E " (-t|--target)\b" | grep -E " (-k|--arch)\b")" \
+  -o -n "$(echo "$OPTIONS" | grep -E " (-o|--orders)\b")" \
+  -o -n "$(echo "$OPTIONS" | grep -E " (--help|-V|--Version)\b")" ] \
+|| { >&2 echo -e "$(basename $0): Missing required options\n\tUse the --help option get help"; exit 1; }
+
+
+
+# Sub function
+_help() {
+printf "\n\
+Usage: sync [OPTION]... \n\
+\n\
+  e.g. sync -d /www/sync -n x64_21_02_5 -s 21.02.5 -t 'x86/64' -k x86_64\n\
+  e.g. sync -l 500K -d /www/sync -o \"{[ {'homedir': '/www/sync', 'version': '21.02.5', 'target': 'x86/64', 'arch': 'x86_64'}, \ \n\
+                                        {'homedir': '/www/sync', 'version': '22.03.2', 'target': 'x86/64', 'arch': 'x86_64'}, \ \n\
+                                        {'homedir': '/www/sync', 'version': '21.02.5', 'target': 'ath79/nand', 'arch': 'mips_24kc'}, \ \n\
+                                        {'homedir': '/www/sync', 'version': '22.03.2', 'target': 'ath79/nand', 'arch': 'mips_24kc'} ]}\" \n\
+\n\
+Options:\n\
+  -d, --homedir <homedir>             -- Sync folder. Is not essential, if it has been specified in orders\n\
+  -n, --name <nick name>              -- Identifying name. Only used when UCI/procd calls\n\
+  -s, --version <version>             -- \n\
+  -t, --target <target>               -- \n\
+  -k, --arch <pkgarch>                -- \n\
+  -o, --orders <orders>               -- \n\
+  -l, --bwlimit <n>[(K|M|G)]          -- \n\
+  -x, --proxy <protocol://ip:port>    -- \n\
+  -V, --Version                       -- Returns version\n\
+  --help                              -- Returns help info\n\
+\n\
+OrdersFormat:\n\
+  {[ {'homedir': '??', 'name': '??', 'version': '??', 'target': '??', 'arch': '??'}, \ \n\
+     {'homedir': '??', 'name': '??', 'version': '??', 'target': '??', 'arch': '??'} ]} \n\
+  'homedir' and 'name' is optional.\n\
+\n"
+}
+
+_version() {
+  echo "$(basename $0) version: v$VERSION"
+}
+
+
+
+# Main
+# Get options
+while [ -n "$1" ]; do
+  case "$1" in
+    --help)
+      _help
+      exit
+    ;;
+    -V|--Version)
+      _version
+      exit
+    ;;
+    -x|--proxy)
+      tmp=$(echo "${2,,}"|sed -En "\
+/^(http|https|socks5|socks5h):\/\/\
+(\
+((25[0-5]|(2[0-4]|1{0,1}\d){0,1}\d)\.){3}(25[0-5]|(2[0-4]|1{0,1}\d){0,1}\d)\
+|\[(\
+([[:xdigit:]]{1,4}:){7}[[:xdigit:]]{1,4}|\
+([[:xdigit:]]{1,4}:){1,7}:|\
+([[:xdigit:]]{1,4}:){1,6}:[[:xdigit:]]{1,4}|\
+([[:xdigit:]]{1,4}:){1,5}(:[[:xdigit:]]{1,4}){1,2}|\
+([[:xdigit:]]{1,4}:){1,4}(:[[:xdigit:]]{1,4}){1,3}|\
+([[:xdigit:]]{1,4}:){1,3}(:[[:xdigit:]]{1,4}){1,4}|\
+([[:xdigit:]]{1,4}:){1,2}(:[[:xdigit:]]{1,4}){1,5}|\
+[[:xdigit:]]{1,4}:(:[[:xdigit:]]{1,4}){1,6}|\
+:((:[[:xdigit:]]{1,4}){1,7}|:)|\
+fe80:(:[[:xdigit:]]{0,4}){0,4}%\w+|\
+::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}\d){0,1}\d)\.){3}(25[0-5]|(2[0-4]|1{0,1}\d){0,1}\d)|\
+([[:xdigit:]]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}\d){0,1}\d)\.){3}(25[0-5]|(2[0-4]|1{0,1}\d){0,1}\d)\
+)\]\
+)\
+:(6553[0-5]|(655[0-2]|65[0-4]\d|6[0-4]\d{2}|[1-5]{0,1}\d{1,3}){0,1}\d)$/p")
+      [ -n "$tmp" ] && export ALL_PROXY="$2" || { >&2 echo -e "$(basename $0): Option '$1' requires a valid argument\n\tUse the --help option get help"; exit 1; }
+      shift
+    ;;
+    -l|--bwlimit)
+      [ -n "$(echo "${2^^}"|sed -En '/^((\d|[1-9]\d+)|(([1-9]|[1-9]\d+)(K|M|G)))$/p')" ] && BWLIMIT="${2^^}" || { >&2 echo -e "$(basename $0): Option '$1' requires a valid argument\n\tUse the --help option get help"; exit 1; }
+      #[ -n "$(echo "$2"|sed -En '/^(\d+|(([1-9]|\d\d+)(K|M|G)))$/lp')" ]
+      shift
+    ;;
+    -d|--homedir)
+      #...
+      shift
+    ;;
+    -n|--name)
+      #...
+      shift
+    ;;
+    -s|--version)
+      #...
+      shift
+    ;;
+    -t|--target)
+      #...
+      shift
+    ;;
+    -k|--arch)
+      #...
+      shift
+    ;;
+    -o|--orders)
+      #...
+      shift
+    ;;
+    --)
+      shift
+      break
+    ;;
+    *)
+      >&2 echo -e "$(basename $0): '$1' is not a valid option\n\tUse the --help option get help"
+      exit 1
+    ;;
+  esac
+  shift
+done
+# Get parameters
+# ...
+
+# Execute
 

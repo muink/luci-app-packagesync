@@ -130,8 +130,25 @@ parse_json() {
     arch="$(jsonfilter -q -s "$order" -e '$.arch')"
     name="$(jsonfilter -q -s "$order" -e '$.name')"
 
+    mirror "$homedir" "$version" "$target" "$arch"
+
   done
   return 0
+}
+
+#mirror <local mirror root path> <openwrt version> <target/subtarget> <package arch>
+mirror() {
+  local homedir version target arch name ERROR=0
+  homedir="${1:-$HOMEPATH}" && shift
+  version="$1" && shift
+  target="$1" && shift
+  arch="$1" && shift
+
+  verify_path "$homedir" || { >&2 echo -e "$(basename $0): No valid <homedir> specified\n\tUse the --help option get help"; ((ERROR++)); }
+  verify_order "$version" "$target" "$arch" || { >&2 echo -e "$(basename $0): Order '$version' '$target' '$arch' seems invalid.\n\tPlease check for network or typos"; ((ERROR++)); }
+  [ "$ERROR" -gt 0 ] && return 1
+
+  #start sync
 }
 
 

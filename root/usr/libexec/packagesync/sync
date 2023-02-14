@@ -14,10 +14,10 @@ DEF_HOMEPATH="/www/$DEF_HOMEURL"
 HOMEPATH=''
 JSON=''
 # url path
-OPENWRT_URL="https://downloads.openwrt.org"
+WEB_URL="https://downloads.openwrt.org"
 RSYNC_URL="rsync://downloads.openwrt.org/downloads"
 URLHREF_RELEASES='releases'
-URLHREF_SNAPSHOTS='snapshots'
+#URLHREF_SNAPSHOTS='snapshots'
 URLHREF_PACKAGES_PREFIX='packages-' # packages-22.03
 URLHREF_VERS_PACKAGES='packages'
 URLHREF_VERS_TARGETS='targets'
@@ -95,6 +95,22 @@ _version() {
 verify_path() {
   [ -z "$1" ] && return 1
   [ -d "$1" ] || return 1
+  return 0
+}
+
+#verify_order <openwrt version> <target/subtarget> <package arch>
+verify_order() {
+  local version="$1" target="$2" arch="$3"
+
+  local HTTPCODE ERROR=0
+  HTTPCODE="$(curl --connect-timeout 10 --retry 3 -sSIL -w "%{http_code}" -o /dev/null "$WEB_URL/$URLHREF_RELEASES/${version}/$URLHREF_VERS_TARGETS/${target}")"
+  [ -n "$(echo "$HTTPCODE"|sed -n '/^2\d\d$/p')" ] || { >&2 echo -e "$(basename $0): Get '$WEB_URL/$URLHREF_RELEASES/${version}/$URLHREF_VERS_TARGETS/${target}' failed. Code '$HTTPCODE'"; ((ERROR++)); }
+  HTTPCODE="$(curl --connect-timeout 10 --retry 3 -sSIL -w "%{http_code}" -o /dev/null "$WEB_URL/$URLHREF_RELEASES/${version}/$URLHREF_VERS_PACKAGES/${arch}")"
+  [ -n "$(echo "$HTTPCODE"|sed -n '/^2\d\d$/p')" ] || { >&2 echo -e "$(basename $0): Get '$WEB_URL/$URLHREF_RELEASES/${version}/$URLHREF_VERS_PACKAGES/${arch}' failed. Code '$HTTPCODE'"; ((ERROR++)); }
+  HTTPCODE="$(curl --connect-timeout 10 --retry 3 -sSIL -w "%{http_code}" -o /dev/null "$WEB_URL/$URLHREF_RELEASES/$URLHREF_PACKAGES_PREFIX${version%.*}/${arch}")"
+  [ -n "$(echo "$HTTPCODE"|sed -n '/^2\d\d$/p')" ] || { >&2 echo -e "$(basename $0): Get '$WEB_URL/$URLHREF_RELEASES/$URLHREF_PACKAGES_PREFIX${version%.*}/${arch}' failed. Code '$HTTPCODE'"; ((ERROR++)); }
+
+  [ "$ERROR" -gt 0 ] && return 1
   return 0
 }
 

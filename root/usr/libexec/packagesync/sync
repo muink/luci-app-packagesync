@@ -26,7 +26,7 @@ ARCHIVE='-a' # or '-rlpt' (no root)
 INFO='vhi'
 COMPAC='--compress'
 PRUNE='--delete'
-PROGR='--progress'
+#PROGR='--progress'
 BWLIMIT='800'
 
 

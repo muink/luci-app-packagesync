@@ -12,7 +12,7 @@ VERSION="20230211"
 DEF_HOMEURL="packagesync"
 DEF_HOMEPATH="/www/$DEF_HOMEURL"
 HOMEPATH=''
-OBJECT=''
+JSON=''
 # url path
 OPENWRT_URL="https://downloads.openwrt.org"
 RSYNC_URL="rsync://downloads.openwrt.org/downloads"
@@ -98,8 +98,8 @@ verify_path() {
   return 0
 }
 
-#parse_object <OBJECT>
-parse_object() {
+#parse_json <JSON>
+parse_json() {
   local array="$1"
   [ -z "$(jsonfilter -q -s "$array" -e '$')" ] && >&2 echo -e "$(basename $0): The format of <orders> is incorrect" && return 1
 
@@ -182,7 +182,7 @@ fe80:(:[[:xdigit:]]{0,4}){0,4}%\w+|\
       shift
     ;;
     -o|--orders)
-      OBJECT="$2"
+      JSON="$2"
       shift
     ;;
     --)
@@ -200,5 +200,5 @@ done
 # ...
 
 # Execute
-parse_object "${OBJECT:=[{'name':'$name','version':'$version','target':'$target','arch':'$arch'\}]}" || { >&2 echo -e "$(basename $0): Required options requires valid argument\n\tUse the --help option get help"; exit 1; }
+parse_json "${JSON:=[{'name':'$name','version':'$version','target':'$target','arch':'$arch'\}]}" || { >&2 echo -e "$(basename $0): Required options requires valid argument\n\tUse the --help option get help"; exit 1; }
 

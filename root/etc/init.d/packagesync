@@ -62,7 +62,7 @@ sync_instance() {
 	[ -z "$1" ] && return 1
 
 	procd_open_instance 'sync'
-	procd_set_param command "$SYNCEXE" -o "{[ $1 ]}"
+	procd_set_param command "$SYNCEXE" -o "[ $1 ]"
 	procd_append_param command -l "$bwlimit" -d "$homepath"
 	procd_set_param respawn
 	#procd_set_param stdout 1
@@ -92,15 +92,15 @@ start_service() {
 	#$SYNCEXE -l|--bwlimit "$bwlimit" -d|--homedir "$homepath" -n|--name "ath79_21_02_5" -s|--version "21.02.5" -t|--target "ath79/nand" -k|--arch "mips_24kc";
 	#$SYNCEXE -l|--bwlimit "$bwlimit" -d|--homedir "$homepath" -n|--name "ath79_22_03_2" -s|--version "22.03.2" -t|--target "ath79/nand" -k|--arch "mips_24kc";
     #
-	#$SYNCEXE -l|--bwlimit "$bwlimit" -o|--orders '{[ {"homedir": "$homepath", "name": "x64_21_02_5", "version": "21.02.5", "target": "x86/64", "arch": "x86_64"}, \
+	#$SYNCEXE -l|--bwlimit "$bwlimit" -o|--orders '[ {"homedir": "$homepath", "name": "x64_21_02_5", "version": "21.02.5", "target": "x86/64", "arch": "x86_64"}, \
 	#												{"homedir": "$homepath", "name": "x64_22_03_2", "version": "22.03.2", "target": "x86/64", "arch": "x86_64"}, \
 	#												{"homedir": "$homepath", "name": "ath79_21_02_5", "version": "21.02.5", "target": "ath79/nand", "arch": "mips_24kc"}, \
-	#												{"homedir": "$homepath", "name": "ath79_22_03_2", "version": "22.03.2", "target": "ath79/nand", "arch": "mips_24kc"} ]}'
+	#												{"homedir": "$homepath", "name": "ath79_22_03_2", "version": "22.03.2", "target": "ath79/nand", "arch": "mips_24kc"} ]'
     #
-	#$SYNCEXE -l|--bwlimit "$bwlimit" -d|--homedir "$homepath" -o|--orders '{[ {"name": "x64_21_02_5", "version": "21.02.5", "target": "x86/64", "arch": "x86_64"}, \
+	#$SYNCEXE -l|--bwlimit "$bwlimit" -d|--homedir "$homepath" -o|--orders '[ {"name": "x64_21_02_5", "version": "21.02.5", "target": "x86/64", "arch": "x86_64"}, \
 	#																			{"name": "x64_22_03_2", "version": "22.03.2", "target": "x86/64", "arch": "x86_64"}, \
 	#																			{"name": "ath79_21_02_5", "version": "21.02.5", "target": "ath79/nand", "arch": "mips_24kc"}, \
-	#																			{"name": "ath79_22_03_2", "version": "22.03.2", "target": "ath79/nand", "arch": "mips_24kc"} ]}'
+	#																			{"name": "ath79_22_03_2", "version": "22.03.2", "target": "ath79/nand", "arch": "mips_24kc"} ]'
 
 	return 0
 }

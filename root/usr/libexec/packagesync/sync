@@ -1,5 +1,5 @@
 #!/bin/bash
-# depends: curl getopt rsync
+# depends: curl getopt jsonfilter rsync
 #
 # Author: muink
 # Github: https://github.com/muink/luci-app-packagesync
@@ -63,10 +63,10 @@ printf "\n\
 Usage: sync [OPTION]... \n\
 \n\
   e.g. sync -d /www/sync -n x64_21_02_5 -s 21.02.5 -t 'x86/64' -k x86_64\n\
-  e.g. sync -l 500K -d /www/sync -o \"{[ {'homedir': '/www/sync', 'version': '21.02.5', 'target': 'x86/64', 'arch': 'x86_64'}, \ \n\
-                                        {'homedir': '/www/sync', 'version': '22.03.2', 'target': 'x86/64', 'arch': 'x86_64'}, \ \n\
-                                        {'homedir': '/www/sync', 'version': '21.02.5', 'target': 'ath79/nand', 'arch': 'mips_24kc'}, \ \n\
-                                        {'homedir': '/www/sync', 'version': '22.03.2', 'target': 'ath79/nand', 'arch': 'mips_24kc'} ]}\" \n\
+  e.g. sync -l 500K -d /www/sync -o \"[ {'homedir': '/www/sync', 'version': '21.02.5', 'target': 'x86/64', 'arch': 'x86_64'}, \ \n\
+                                       {'homedir': '/www/sync', 'version': '22.03.2', 'target': 'x86/64', 'arch': 'x86_64'}, \ \n\
+                                       {'homedir': '/www/sync', 'version': '21.02.5', 'target': 'ath79/nand', 'arch': 'mips_24kc'}, \ \n\
+                                       {'homedir': '/www/sync', 'version': '22.03.2', 'target': 'ath79/nand', 'arch': 'mips_24kc'} ]\" \n\
 \n\
 Options:\n\
   -d, --homedir <homedir>             -- Sync folder. Is not essential, if it has been specified in orders\n\
@@ -81,8 +81,8 @@ Options:\n\
   --help                              -- Returns help info\n\
 \n\
 OrdersFormat:\n\
-  {[ {'homedir': '??', 'name': '??', 'version': '??', 'target': '??', 'arch': '??'}, \ \n\
-     {'homedir': '??', 'name': '??', 'version': '??', 'target': '??', 'arch': '??'} ]} \n\
+  [ {'homedir': '??', 'name': '??', 'version': '??', 'target': '??', 'arch': '??'}, \ \n\
+    {'homedir': '??', 'name': '??', 'version': '??', 'target': '??', 'arch': '??'} ] \n\
   'homedir' and 'name' is optional.\n\
 \n"
 }
@@ -98,8 +98,24 @@ verify_path() {
   return 0
 }
 
-#verify_object <object>
-verify_object() {
+#parse_object <OBJECT>
+parse_object() {
+  local array="$1"
+  [ -z "$(jsonfilter -q -s "$array" -e '$')" ] && >&2 echo -e "$(basename $0): The format of <orders> is incorrect" && return 1
+
+  local count=$(jsonfilter -q -s "$array" -e '$'|sed -n '$=') homedir version target arch name
+  [ -z "$count" ] && >&2 echo -e "$(basename $0): The <orders> has no content" && return 1
+
+  for i in $(seq 0 $[ $count -1 ]); do
+    local order="$(eval "jsonfilter -q -s \"\$array\" -e '\$[$i]'")"
+    homedir="$(jsonfilter -q -s "$order" -e '$.homedir')"
+    version="$(jsonfilter -q -s "$order" -e '$.version')"
+    target="$(jsonfilter -q -s "$order" -e '$.target')"
+    arch="$(jsonfilter -q -s "$order" -e '$.arch')"
+    name="$(jsonfilter -q -s "$order" -e '$.name')"
+
+  done
+  return 0
 }
 
 
@@ -184,5 +200,5 @@ done
 # ...
 
 # Execute
-verify_object "${OBJECT:={[{'name':'$name','version':'$version','target':'$target','arch':'$arch'\}]\}}" || { >&2 echo -e "$(basename $0): Required options requires valid argument\n\tUse the --help option get help"; exit 1; }
+parse_object "${OBJECT:=[{'name':'$name','version':'$version','target':'$target','arch':'$arch'\}]}" || { >&2 echo -e "$(basename $0): Required options requires valid argument\n\tUse the --help option get help"; exit 1; }
 

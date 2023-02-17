@@ -94,7 +94,7 @@ _version() {
 #verify_path <absolute path>
 verify_path() {
   [ -z "$1" ] && return 1
-  [ -d "$1" ] || return 1
+  [ -d "$1" -a -n "$(echo "$1"|sed -n '/^\//p')" ] || return 1
   return 0
 }
 
@@ -119,16 +119,15 @@ parse_json() {
   local array="$1"
   [ -z "$(jsonfilter -q -s "$array" -e '$')" ] && >&2 echo -e "$(basename $0): The format of <orders> is incorrect" && return 1
 
-  local count=$(jsonfilter -q -s "$array" -e '$'|sed -n '$=') homedir version target arch name
+  local count=$(jsonfilter -q -s "$array" -e '$'|sed -n '$=')
   [ -z "$count" ] && >&2 echo -e "$(basename $0): The <orders> has no content" && return 1
 
   for i in $(seq 0 $[ $count -1 ]); do
     local order="$(eval "jsonfilter -q -s \"\$array\" -e '\$[$i]'")"
-    homedir="$(jsonfilter -q -s "$order" -e '$.homedir')"
-    version="$(jsonfilter -q -s "$order" -e '$.version')"
-    target="$(jsonfilter -q -s "$order" -e '$.target')"
-    arch="$(jsonfilter -q -s "$order" -e '$.arch')"
-    name="$(jsonfilter -q -s "$order" -e '$.name')"
+    local ucivv="homedir version target arch name"
+    for _var in $ucivv; do
+      eval "local $_var=\"\$(jsonfilter -q -s \"\$order\" -e '\$.$_var')\""
+    done
 
     mirror "$homedir" "$version" "$target" "$arch"
 
@@ -190,8 +189,8 @@ fe80:(:[[:xdigit:]]{0,4}){0,4}%\w+|\
       shift
     ;;
     -l|--bwlimit)
-      [ -n "$(echo "${2^^}"|sed -En '/^((\d|[1-9]\d+)|(([1-9]|[1-9]\d+)(K|M|G)))$/p')" ] && BWLIMIT="${2^^}" || { >&2 echo -e "$(basename $0): Option '$1' requires a valid argument\n\tUse the --help option get help"; exit 1; }
-      #[ -n "$(echo "$2"|sed -En '/^(\d+|(([1-9]|\d\d+)(K|M|G)))$/lp')" ]
+      [ -n "$(echo "${2^^}"|sed -En '/^(\d|[1-9]\d*(K|M|G)?)$/p')" ] && BWLIMIT="${2^^}" || { >&2 echo -e "$(basename $0): Option '$1' requires a valid argument\n\tUse the --help option get help"; exit 1; }
+      #[ -n "$(echo "$2"|sed -En '/^(\d|[1-9]\d*(K|M|G)?)$/lp')" ]
       shift
     ;;
     -d|--homedir)

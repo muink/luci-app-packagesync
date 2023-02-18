@@ -147,6 +147,7 @@ mirror() {
 
   #start sync
   sync_package "${homedir}" "${version}" "${arch}"
+  sync_target  "${homedir}" "${version}" "${target}" "${kversion}"
 }
 
 #sync_package <local mirror root path> <openwrt version> <package arch>
@@ -162,6 +163,34 @@ sync_package() {
   sleep 5
   mkdir -p "$home/${VER}/$(ls -l "$home/${VER}/$URLHREF_VERS_PACKAGES" | sed "s|.*->[ ]*\(.*\)[ ]*$|\1|")" 2>/dev/null
   rsync $ARCHIVE$INFO $COMPAC $PRUNE $PROGR --bwlimit=$BWLIMIT "$RSYNC_URL/${VER}/$URLHREF_VERS_PACKAGES/$arch" "$home/${VER}/$URLHREF_VERS_PACKAGES/"
+}
+
+#sync_target <local mirror root path> <openwrt version> <target/subtarget> [Kernel version]
+sync_target() {
+  local home="${1%/}" && shift
+  local ver="$1" && shift
+  local target="$1" && shift
+  [ "$#" -ge 1 ] && local kver="$1" && shift
+
+  local VER="$URLHREF_RELEASES/$ver"
+  mkdir -p "$home/${VER}" 2>/dev/null
+
+  mkdir -p "$home/${VER}/$URLHREF_VERS_TARGETS/$target" 2>/dev/null
+  rsync $ARCHIVE$INFO $COMPAC $PRUNE $PROGR --bwlimit=$BWLIMIT --include '*/' --exclude '*' "$RSYNC_URL/${VER}/$URLHREF_VERS_TARGETS/$target/" "$home/${VER}/$URLHREF_VERS_TARGETS/$target/"
+  #kmods
+  rsync $ARCHIVE$INFO $COMPAC $PRUNE $PROGR --bwlimit=$BWLIMIT "$RSYNC_URL/${VER}/$URLHREF_VERS_TARGETS/$target/kmods/$kver" "$home/${VER}/$URLHREF_VERS_TARGETS/$target/kmods/"
+  #packages
+  rsync $ARCHIVE$INFO $COMPAC $PRUNE $PROGR --bwlimit=$BWLIMIT "$RSYNC_URL/${VER}/$URLHREF_VERS_TARGETS/$target/packages" "$home/${VER}/$URLHREF_VERS_TARGETS/$target/"
+  #supplementary
+  local table="$(curl --connect-timeout 10 --retry 3 -sSL "$WEB_URL/${VER}/$URLHREF_VERS_TARGETS/$target" | sed -n '/Supplementary Files/,$p' | sed -n '/<table>/,/<\/table>/p')"
+  if [ -n "$table" ]; then
+    for v in $(echo "$table" | sed -En "s|.+\bhref=\"([^\"/]+)\".+|'\1'|gp"); do
+      rsync $ARCHIVE$INFO $COMPAC $PRUNE $PROGR --bwlimit=$BWLIMIT "$RSYNC_URL/${VER}/$URLHREF_VERS_TARGETS/$target/$v" "$home/${VER}/$URLHREF_VERS_TARGETS/$target/"
+    done
+  else
+    >&2 echo -e "$(basename $0): Sync '${VER}/$URLHREF_VERS_TARGETS/$target' error. Get Supplementary Files failed.\n\tPlease check for network"
+    return 1
+  fi
 }
 
 

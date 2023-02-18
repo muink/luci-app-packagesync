@@ -355,6 +355,20 @@ return view.extend({
 				o.value(pkgarchslist[i]);
 		};
 
+		o = s.option(form.DummyValue, 'return', _('Last exec result'));
+		o.readonly = true;
+
+		o = s.option(form.DummyValue, '_return_log', _('Last Error log'));
+		o.editable = true;
+		o.readonly = true;
+		//o.rawhtml = true;
+		//o.modalonly = true;
+		o.cfgvalue = function(section_id) {
+			let href = uci.get('packagesync', '@packagesync[0]', 'home_url');
+			let result = uci.get('packagesync', section_id, 'name');
+			return E('span', { 'style': 'font-weight:bold' }, [ E('a', { 'href': '/' + href + '/results/' + result + '.log', 'target': '_blank' }, _('Click to view')) ]);
+		};
+
 		return m.render()
 		.then(L.bind(function(m, nodes) {
 			poll.add(L.bind(function() {

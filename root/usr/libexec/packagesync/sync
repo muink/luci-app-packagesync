@@ -7,12 +7,12 @@
 
 # Info
 PKGNAME='packagesync'
+RELEASE='release'
 VERSION="20230211"
 #
-DEF_HOMEURL="packagesync"
-DEF_HOMEPATH="/www/$DEF_HOMEURL"
 HOMEPATH=''
 JSON=''
+RESULTPATH='/var/packagesync/results'
 # url path
 WEB_URL="https://downloads.openwrt.org"
 RSYNC_URL="rsync://downloads.openwrt.org/downloads"
@@ -127,8 +127,25 @@ parse_json() {
       eval "local $_var=\"\$(jsonfilter -q -s \"\$order\" -e '\$.$_var')\""
     done
 
-    mirror "$homedir" "$version" "$target" "$arch"
+    local redirect
+    mkdir -p "$RESULTPATH" 2>/dev/null
+    [ -n "$name" ] && redirect="2>'$RESULTPATH/${name}.log'"
+    eval "mirror \"\$homedir\" \"\$version\" \"\$target\" \"\$arch\" $redirect"
+    local ERROR="$?"
 
+    if [ -n "$name" ]; then
+      local num=$(uci -q show $PKGNAME|sed -En "s|.+@$RELEASE\[(\d+)\]\.name='$name'|\1|p")
+      if [ -n "$num" ]; then
+        if [ "$ERROR" -eq 0 ]; then
+          uci set $PKGNAME.@$RELEASE[$num].return="Success $(date +"%Y-%m-%dT%TZ%z")"
+        else
+          uci set $PKGNAME.@$RELEASE[$num].return="Error $(date +"%Y-%m-%dT%TZ%z")"
+          #uci set $PKGNAME.@$RELEASE[$num].return="$(cat "$RESULTPATH/$name"|awk BEGIN{RS=EOF}'{gsub(/\n/,"\\\\n");print}'|sed 's|\\\\n|\\n|g')"
+          ##                                                                 |sed ':a;N;s/\n/\\\\n/;ta;'|sed 's|\\\\n|\\n|g'
+        fi
+        uci commit $PKGNAME
+      fi
+    fi
   done
   return 0
 }

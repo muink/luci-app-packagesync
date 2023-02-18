@@ -64,7 +64,7 @@ sync_instance() {
 
 	procd_open_instance 'sync'
 	procd_set_param command "$SYNCEXE" -o "[ $1 ]"
-	procd_append_param command -l "$bwlimit" -d "$homepath"
+	procd_append_param command -l "$bwlimit" -d "$homepath" ${ALL_PROXY:+-x $ALL_PROXY}
 	procd_set_param respawn
 	#procd_set_param stdout 1
 	procd_set_param stderr 1

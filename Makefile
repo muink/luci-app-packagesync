@@ -11,7 +11,7 @@ PKG_VERSION:=20230122
 #PKG_RELEASE:=1
 
 LUCI_TITLE:=LuCI Local software source
-LUCI_DEPENDS:=+blockd +curl +getopt +rsync +bash +jsonfilter
+LUCI_DEPENDS:=+blockd +curl +getopt +rsync +bash +jsonfilter +ncat-full
 
 LUCI_DESCRIPTION:=Used to build a local mirror feeds source on the router
 

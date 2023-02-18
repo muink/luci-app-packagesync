@@ -1,5 +1,5 @@
 #!/bin/bash
-# depends: curl getopt jsonfilter rsync
+# depends: curl getopt jsonfilter rsync ncat-full
 #
 # Author: muink
 # Github: https://github.com/muink/luci-app-packagesync
@@ -287,7 +287,16 @@ fe80:(:[[:xdigit:]]{0,4}){0,4}%\w+|\
 )\]\
 )\
 :(6553[0-5]|(655[0-2]|65[0-4]\d|6[0-4]\d{2}|[1-5]{0,1}\d{1,3}){0,1}\d)$/p")
-      [ -n "$tmp" ] && export ALL_PROXY="$2" || { >&2 echo -e "$(basename $0): Option '$1' requires a valid argument\n\tUse the --help option get help"; exit 1; }
+      if [ -n "$tmp" ]; then
+        export ALL_PROXY="$2"
+        [ -n "$(echo "${2,,}"|sed -En '/^https?:/p')" ] && export RSYNC_PROXY="$(echo "$2"|sed -En 's|^.+://||p')"
+        #[ -n "$(echo "${2,,}"|sed -En '/^socks5:/p')" ] && export RSYNC_CONNECT_PROG="ncat --proxy-type socks5 --proxy-dns local --proxy $(echo "$2"|sed -En 's|^.+://||p') %H 873"
+        #[ -n "$(echo "${2,,}"|sed -En '/^socks5h:/p')" ] && export RSYNC_CONNECT_PROG="ncat --proxy-type socks5 --proxy-dns remote --proxy $(echo "$2"|sed -En 's|^.+://||p') %H 873"
+        [ -n "$(echo "${2,,}"|sed -En '/^socks5h?:/p')" ] && export RSYNC_CONNECT_PROG="ncat --proxy-type socks5 --proxy-dns both --proxy $(echo "$2"|sed -En 's|^.+://||p') %H 873"
+      else
+        >&2 echo -e "$(basename $0): Option '$1' requires a valid argument\n\tUse the --help option get help"
+        exit 1
+      fi
       shift
     ;;
     -l|--bwlimit)

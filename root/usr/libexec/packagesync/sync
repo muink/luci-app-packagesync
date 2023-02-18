@@ -71,12 +71,12 @@ Usage: sync [OPTION]... \n\
 Options:\n\
   -d, --homedir <homedir>             -- Sync folder. Is not essential, if it has been specified in orders\n\
   -n, --name <nick name>              -- Identifying name. Only used when UCI/procd calls\n\
-  -s, --version <version>             -- Required option.\n\
-  -t, --target <target>               -- Required option.\n\
-  -k, --arch <pkgarch>                -- Required option.\n\
-  -o, --orders <orders>               -- Required option.\n\
-  -l, --bwlimit <n>[(K|M|G)]          -- \n\
-  -x, --proxy <protocol://ip:port>    -- \n\
+  -s, --version <version>             -- Required option. OpenWRT version\n\
+  -t, --target <target/subtarget>     -- Required option. Device target and subtarget\n\
+  -k, --arch <pkgarch>                -- Required option. Device architecture\n\
+  -o, --orders <orders>               -- Required option. Sync multi-versions at once\n\
+  -l, --bwlimit <n>[(K|M|G)]          -- Bandwidth limit\n\
+  -x, --proxy <protocol://ip:port>    -- Connect using proxy\n\
   -V, --Version                       -- Returns version\n\
   --help                              -- Returns help info\n\
 \n\

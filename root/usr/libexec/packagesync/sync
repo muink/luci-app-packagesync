@@ -148,6 +148,9 @@ mirror() {
   #start sync
   sync_package "${homedir}" "${version}" "${arch}"
   sync_target  "${homedir}" "${version}" "${target}" "${kversion}"
+  sync_module  "${homedir}" "${version}" "${target}" "${module}"
+
+  return 0
 }
 
 #sync_package <local mirror root path> <openwrt version> <package arch>
@@ -191,6 +194,32 @@ sync_target() {
     >&2 echo -e "$(basename $0): Sync '${VER}/$URLHREF_VERS_TARGETS/$target' error. Get Supplementary Files failed.\n\tPlease check for network"
     return 1
   fi
+}
+
+#sync_module <local mirror root path> <openwrt version> <target/subtarget> <module>
+sync_module() {
+  local home="${1%/}" && shift
+  local ver="$1" && shift
+  local target="$1" && shift
+  local module="$1" && shift
+
+  #Predefined
+  [ -z "$module" ] && {
+    case "$target" in
+      x86/64)
+        module="x86-64"
+      ;;
+      *)
+        module="${target/\//-}"
+        return 1
+      ;;
+    esac
+  }
+
+  local VER="$URLHREF_RELEASES/$ver"
+  mkdir -p "$home/${VER}" 2>/dev/null
+
+  rsync $ARCHIVE$INFO $COMPAC $PRUNE $PROGR --bwlimit=$BWLIMIT --include={"$module"} --exclude '*' "$RSYNC_URL/${VER}/$URLHREF_VERS_TARGETS/$target/" "$home/${VER}/$URLHREF_VERS_TARGETS/$target/"
 }
 
 

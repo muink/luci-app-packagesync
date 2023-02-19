@@ -153,15 +153,19 @@ return view.extend({
 		o.value('200', _('200 KB/s'));
 		o.value('300', _('300 KB/s'));
 		o.value('500', _('500 KB/s'));
+		o.value('800', _('800 KB/s'));
 		o.value('1000', _('1 MB/s'));
 		o.value('2000', _('2 MB/s'));
 		o.value('3000', _('3 MB/s'));
 		o.value('5000', _('5 MB/s'));
+		o.value('8000', _('8 MB/s'));
 		o.value('10000', _('10 MB/s'));
 		o.value('20000', _('20 MB/s'));
 		o.value('30000', _('30 MB/s'));
 		o.value('50000', _('50 MB/s'));
-		o.default = '500';
+		o.value('80000', _('80 MB/s'));
+		o.value('100000', _('100 MB/s'));
+		o.default = '800';
 		o.rmempty = false;
 
 		o = s.option(form.Flag, 'auto_exec', _('Auto Exec'));

@@ -22,8 +22,8 @@ URLHREF_RELEASES='releases'
 URLHREF_VERS_PACKAGES='packages'
 URLHREF_VERS_TARGETS='targets'
 # rsync default options
-ARCHIVE='-a' # or '-rlpt' (no root)
-INFO='vhi'
+ARCHIVE='-rlpt' # or '-a' (root)
+INFO='hi'
 COMPAC='--compress'
 PRUNE='--delete'
 #PROGR='--progress'
@@ -117,7 +117,7 @@ parse_json() {
   local array="$1"
   [ -z "$(jsonfilter -q -s "$array" -e '$')" ] && >&2 echo -e "$(basename $0): The format of <orders> is incorrect" && return 1
 
-  local count=$(jsonfilter -q -s "$array" -e '$'|sed -n '$=')
+  local count=$(jsonfilter -q -s "$array" -e '$[*]'|sed -n '$=')
   [ -z "$count" ] && >&2 echo -e "$(basename $0): The <orders> has no content" && return 1
 
   for i in $(seq 0 $[ $count -1 ]); do
@@ -163,8 +163,11 @@ mirror() {
   [ "$ERROR" -gt 0 ] && return 1
 
   #start sync
+  echo -e "$(basename $0): '$version' '$target' '$arch' package syncing..."
   sync_package "${homedir}" "${version}" "${arch}" || ((ERROR++))
+  echo -e "$(basename $0): '$version' '$target' '$arch' target  syncing..."
   sync_target  "${homedir}" "${version}" "${target}" "${kversion}" || ((ERROR++))
+  echo -e "$(basename $0): '$version' '$target' '$arch' module  syncing..."
   sync_module  "${homedir}" "${version}" "${target}" "${module}" || ((ERROR++))
 
   return $ERROR
@@ -210,9 +213,11 @@ sync_target() {
   #supplementary
   local table="$(curl --connect-timeout 10 --retry 3 -sSL "$WEB_URL/${VER}/$URLHREF_VERS_TARGETS/$target" | sed -n '/Supplementary Files/,$p' | sed -n '/<table>/,/<\/table>/p')"
   if [ -n "$table" ]; then
-    for v in $(echo "$table" | sed -En "s|.+\bhref=\"([^\"/]+)\".+|'\1'|gp"); do
-      rsync $ARCHIVE$INFO $COMPAC $PRUNE $PROGR --bwlimit=$BWLIMIT "$RSYNC_URL/${VER}/$URLHREF_VERS_TARGETS/$target/$v" "$home/${VER}/$URLHREF_VERS_TARGETS/$target/" || ((ERROR++))
-    done
+    local expr="{$(echo "$table" | sed -En "s|.+\bhref=\"([^\"/]+)\".+|'\1'|gp" | tr '\n' ',' | sed 's|,$||')}"
+    rsync $ARCHIVE$INFO $COMPAC $PRUNE $PROGR --bwlimit=$BWLIMIT --include=$expr --exclude='*' "$RSYNC_URL/${VER}/$URLHREF_VERS_TARGETS/$target/" "$home/${VER}/$URLHREF_VERS_TARGETS/$target/" || ((ERROR++))
+    #for v in $(echo "$table" | sed -En "s|.+\bhref=\"([^\"/]+)\".+|'\1'|gp"); do
+    #  rsync $ARCHIVE$INFO $COMPAC $PRUNE $PROGR --bwlimit=$BWLIMIT "$RSYNC_URL/${VER}/$URLHREF_VERS_TARGETS/$target/${v:1:-1}" "$home/${VER}/$URLHREF_VERS_TARGETS/$target/" || ((ERROR++))
+    #done
   else
     >&2 echo -e "$(basename $0): Sync '${VER}/$URLHREF_VERS_TARGETS/$target' error. Get Supplementary Files failed.\n\tPlease check for network"
     return 1

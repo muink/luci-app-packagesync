@@ -141,7 +141,7 @@ return view.extend({
 		o.onclick = function() {
 			window.setTimeout(function() {
 				window.location = window.location.href.split('#')[0];
-			}, L.env.apply_display * 1000);
+			}, L.env.apply_display * 500);
 
 			return fs.exec('/etc/init.d/packagesync', ['start'])
 				.catch(function(e) { ui.addNotification(null, E('p', e.message), 'error') });

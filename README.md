@@ -1,6 +1,6 @@
 # luci-app-packagesync
 
-Used to build a local mirror feeds source on the router
+Used to build a local openwrt mirror feeds source on the router
 
 ### How to install
 

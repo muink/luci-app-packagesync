@@ -141,9 +141,9 @@ parse_json() {
       local num=$(uci -q show $PKGNAME|sed -En "s|.+@$RELEASE\[(\d+)\]\.name='$name'|\1|p")
       if [ -n "$num" ]; then
         if [ "$ERROR" -eq 0 ]; then
-          uci set $PKGNAME.@$RELEASE[$num].return="Success $(date +"%Y-%m-%dT%TZ%z")"
+          uci set $PKGNAME.@$RELEASE[$num].return="Success $(date +"%FT%TZ%z")"
         else
-          uci set $PKGNAME.@$RELEASE[$num].return="Error $(date +"%Y-%m-%dT%TZ%z")"
+          uci set $PKGNAME.@$RELEASE[$num].return="Error $(date +"%FT%TZ%z")"
           #uci set $PKGNAME.@$RELEASE[$num].return="$(cat "$RESULTPATH/$name"|awk BEGIN{RS=EOF}'{gsub(/\n/,"\\\\n");print}'|sed 's|\\\\n|\\n|g')"
           ##                                                                 |sed ':a;N;s/\n/\\\\n/;ta;'|sed 's|\\\\n|\\n|g'
         fi

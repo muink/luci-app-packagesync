@@ -184,6 +184,13 @@ else
 fi
 }
 
+cleanup_regex() {
+	[ "$2" == "0" ] || { >&2 echo "section $1 validation failed"; return 1; }
+	targets="${targets:+$targets|}/$version/$URLHREF_VERS_TARGETS/$target/$subtarget\b"
+	packages="${packages:+$packages|}/$version/$URLHREF_VERS_PACKAGES\b"
+	pkgarchs="${pkgarchs:+$pkgarchs|}/$URLHREF_PACKAGES_PREFIX${version%\.*}/$pkgarch\b"
+}
+
 cleanup() {
 local autorm="$1"
 gethomeurl
@@ -191,17 +198,20 @@ gethomeurl
 local count targets packages pkgarchs
 [ -d "$home_path/$URLHREF_RELEASES" ] || return 1
 
-count=$(uci -q show $CONFIG_NAME|grep "=$RELEASE"|sed -E "s|.+@$RELEASE\[(\d+)\].+|\1|"|tail -n1)
+config_load $CONFIG_NAME
+config_foreach validate_section_release $RELEASE cleanup_regex
 
-local ucivv="version target subtarget pkgarch"
-for i in $(seq 0 $count); do
-	for _var in $ucivv; do
-		eval "local $_var=\$(uci -q get $CONFIG_NAME.@$RELEASE[$i].$_var)"
-	done
-	targets="${targets:+$targets|}/$version/$URLHREF_VERS_TARGETS/$target/$subtarget\b"
-	packages="${packages:+$packages|}/$version/$URLHREF_VERS_PACKAGES\b"
-	pkgarchs="${pkgarchs:+$pkgarchs|}/$URLHREF_PACKAGES_PREFIX${version%\.*}/$pkgarch\b"
-done
+#count=$(uci -q show $CONFIG_NAME|grep "=$RELEASE"|sed -E "s|.+@$RELEASE\[(\d+)\].+|\1|"|tail -n1)
+#
+#local ucivv="version target subtarget pkgarch"
+#for i in $(seq 0 $count); do
+#	for _var in $ucivv; do
+#		eval "local $_var=\$(uci -q get $CONFIG_NAME.@$RELEASE[$i].$_var)"
+#	done
+#	targets="${targets:+$targets|}/$version/$URLHREF_VERS_TARGETS/$target/$subtarget\b"
+#	packages="${packages:+$packages|}/$version/$URLHREF_VERS_PACKAGES\b"
+#	pkgarchs="${pkgarchs:+$pkgarchs|}/$URLHREF_PACKAGES_PREFIX${version%\.*}/$pkgarch\b"
+#done
 #echo "$targets"
 #echo "$packages"
 #echo "$pkgarchs"

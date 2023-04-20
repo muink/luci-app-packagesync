@@ -40,6 +40,8 @@ if [ "$(uci -q get $CONFIG_NAME.@$TYPEDSECTION[0].proxy_enabled)" == "1" ]; then
     export ALL_PROXY=$(uci -q get $CONFIG_NAME.@$TYPEDSECTION[0].proxy_protocol)://$(uci -q get $CONFIG_NAME.@$TYPEDSECTION[0].proxy_server)
 fi
 
+config_load $CONFIG_NAME
+
 
 
 validate_section_release() {
@@ -54,7 +56,7 @@ validate_section_release() {
 
 gen_order() {
 	[ "$2" == "0" ] || { >&2 echo "section $1 validation failed"; return 1; }
-	[ "$enabled" == "0" ] && return 1
+	[ "$enabled" == "0" ] && return 0
 
 	orders="${orders:+$orders, }{'name': '$name', 'version': '$version', 'target': '$target/$subtarget', 'arch': '$pkgarch'}"
 }
@@ -80,7 +82,6 @@ start_service() {
 	[ -n "$(df -hT|grep "$MNTPKGS")" ] || return 1
 
 	local homeurl homepath bwlimit
-	config_load $CONFIG_NAME
 	eval "homeurl=\$CONFIG_${CONFIG_SECTIONS%% *}_home_url"
 	[ -n "$homeurl" ] && homepath="/www/$homeurl" || homepath="$DEF_HOMEPATH"
 	[ -d "$homepath" ] || { >&2 echo -e "$CONFIG_NAME: The Home Path '$homepath' is invalid. please check the 'home_url'"; return 1; }
@@ -198,7 +199,6 @@ gethomeurl
 local count targets packages pkgarchs
 [ -d "$home_path/$URLHREF_RELEASES" ] || return 1
 
-config_load $CONFIG_NAME
 config_foreach validate_section_release $RELEASE cleanup_regex
 
 #count=$(uci -q show $CONFIG_NAME|grep "=$RELEASE"|sed -E "s|.+@$RELEASE\[(\d+)\].+|\1|"|tail -n1)

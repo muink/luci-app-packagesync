@@ -199,7 +199,7 @@ gethomeurl
 local count targets packages pkgarchs
 [ -d "$home_path/$URLHREF_RELEASES" ] || return 1
 
-config_foreach validate_section_release $RELEASE cleanup_regex
+config_foreach validate_section_release $RELEASE cleanup_regex || return $?
 
 #count=$(uci -q show $CONFIG_NAME|grep "=$RELEASE"|sed -E "s|.+@$RELEASE\[(\d+)\].+|\1|"|tail -n1)
 #

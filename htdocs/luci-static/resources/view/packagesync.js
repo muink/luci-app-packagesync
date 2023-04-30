@@ -185,8 +185,8 @@ return view.extend({
 		o.default = '0 0 * * *';
 		o.placeholder = '0 0 * * *';
 		o.rmempty = false;
-		o.depends('auto_exec', '1');
 		o.retain = true;
+		o.depends('auto_exec', '1');
 		o.write = function(section, value) {
 			uci.set('packagesync', section, 'cron_expression', value);
 			fs.exec('/etc/init.d/packagesync', ['setcron', value]);
@@ -206,15 +206,15 @@ return view.extend({
 		o.value('socks5h', 'SOCKS5H');
 		o.default = 'socks5';
 		o.rmempty = false;
-		o.depends('proxy_enabled', '1');
 		o.retain = true;
+		o.depends('proxy_enabled', '1');
 
 		o = s.option(form.Value, 'proxy_server', _('Proxy Server'));
 		o.datatype = "ipaddrport(1)";
 		o.placeholder = '192.168.1.10:1080';
 		o.rmempty = false;
-		o.depends('proxy_enabled', '1');
 		o.retain = true;
+		o.depends('proxy_enabled', '1');
 
 		o = s.option(form.Button, '_list_invalid', _('List removable versions'));
 		o.inputtitle = _('List');

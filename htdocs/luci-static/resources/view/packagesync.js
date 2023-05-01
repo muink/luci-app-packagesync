@@ -229,7 +229,7 @@ return view.extend({
 				.catch(function(err) { ui.addNotification(null, E('p', err.message), 'error') });
 		};
 
-		o = s.option(form.DummyValue, '_removable_versions', ' ');
+		o = s.option(form.DummyValue, '_removable_versions', '　');
 		o.rawhtml = true;
 		o.cfgvalue = function(section_id) {
 			return E('pre', { 'id': 'cleanup-output' }, []);

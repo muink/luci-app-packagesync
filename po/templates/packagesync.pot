@@ -167,7 +167,7 @@ msgid "Nick name"
 msgstr ""
 
 #: applications/luci-app-packagesync/htdocs/luci-static/resources/view/packagesync.js:117
-msgid "Open <a href=\"/%s\">URL</a>"
+msgid "Open <a href=\"/%s\" target=\"_blank\">URL</a>"
 msgstr ""
 
 #: applications/luci-app-packagesync/htdocs/luci-static/resources/view/packagesync.js:202

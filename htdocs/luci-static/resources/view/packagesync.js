@@ -114,7 +114,7 @@ return view.extend({
 		};
 
 		o = s.option(form.Value, 'home_url', _('Home URL'),
-			_('Open <a href="/%s">URL</a>').format(uci.get('packagesync', '@packagesync[0]', 'home_url')));
+			_('Open <a href="/%s" target="_blank">URL</a>').format(uci.get('packagesync', '@packagesync[0]', 'home_url')));
 		o.placeholder = 'packagesync';
 		o.rmempty = false;
 		o.validate = function(section, value) {

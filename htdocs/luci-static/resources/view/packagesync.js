@@ -165,7 +165,7 @@ return view.extend({
 		o.value('50000', _('50 MB/s'));
 		o.value('80000', _('80 MB/s'));
 		o.value('100000', _('100 MB/s'));
-		o.default = '800';
+		o.default = '8000';
 		o.rmempty = false;
 
 		o = s.option(form.Flag, 'auto_exec', _('Auto Exec'));

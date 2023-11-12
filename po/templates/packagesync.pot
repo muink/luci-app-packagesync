@@ -71,7 +71,7 @@ msgid ""
 "the wrong location<span/>"
 msgstr ""
 
-#: applications/luci-app-packagesync/htdocs/luci-static/resources/view/packagesync.js:349
+#: applications/luci-app-packagesync/htdocs/luci-static/resources/view/packagesync.js:354
 msgid "Arch"
 msgstr ""
 
@@ -87,7 +87,7 @@ msgstr ""
 msgid "Bandwidth Limit"
 msgstr ""
 
-#: applications/luci-app-packagesync/htdocs/luci-static/resources/view/packagesync.js:373
+#: applications/luci-app-packagesync/htdocs/luci-static/resources/view/packagesync.js:381
 msgid "Click to view"
 msgstr ""
 
@@ -113,7 +113,7 @@ msgstr ""
 #: applications/luci-app-packagesync/htdocs/luci-static/resources/view/packagesync.js:312
 #: applications/luci-app-packagesync/htdocs/luci-static/resources/view/packagesync.js:325
 #: applications/luci-app-packagesync/htdocs/luci-static/resources/view/packagesync.js:345
-#: applications/luci-app-packagesync/htdocs/luci-static/resources/view/packagesync.js:353
+#: applications/luci-app-packagesync/htdocs/luci-static/resources/view/packagesync.js:358
 msgid "Expecting: non-empty value"
 msgstr ""
 
@@ -133,11 +133,11 @@ msgstr ""
 msgid "Home URL"
 msgstr ""
 
-#: applications/luci-app-packagesync/htdocs/luci-static/resources/view/packagesync.js:365
+#: applications/luci-app-packagesync/htdocs/luci-static/resources/view/packagesync.js:373
 msgid "Last Error log"
 msgstr ""
 
-#: applications/luci-app-packagesync/htdocs/luci-static/resources/view/packagesync.js:362
+#: applications/luci-app-packagesync/htdocs/luci-static/resources/view/packagesync.js:370
 msgid "Last exec result"
 msgstr ""
 
@@ -168,6 +168,10 @@ msgstr ""
 
 #: applications/luci-app-packagesync/htdocs/luci-static/resources/view/packagesync.js:117
 msgid "Open <a href=\"/%s\" target=\"_blank\">URL</a>"
+msgstr ""
+
+#: applications/luci-app-packagesync/htdocs/luci-static/resources/view/packagesync.js:367
+msgid "Product model"
 msgstr ""
 
 #: applications/luci-app-packagesync/htdocs/luci-static/resources/view/packagesync.js:202
@@ -202,6 +206,10 @@ msgstr ""
 
 #: applications/luci-app-packagesync/htdocs/luci-static/resources/view/packagesync.js:334
 msgid "SubTarget"
+msgstr ""
+
+#: applications/luci-app-packagesync/htdocs/luci-static/resources/view/packagesync.js:349
+msgid "Supplementary Files"
 msgstr ""
 
 #: applications/luci-app-packagesync/htdocs/luci-static/resources/view/packagesync.js:321

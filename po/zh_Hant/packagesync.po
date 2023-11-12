@@ -84,7 +84,7 @@ msgstr ""
 "<span style='color:red;font-weight:bold'>裝置不存在或掛載點在錯誤的位置<span/"
 ">"
 
-#: applications/luci-app-packagesync/htdocs/luci-static/resources/view/packagesync.js:349
+#: applications/luci-app-packagesync/htdocs/luci-static/resources/view/packagesync.js:354
 msgid "Arch"
 msgstr "Arch"
 
@@ -100,7 +100,7 @@ msgstr "可用"
 msgid "Bandwidth Limit"
 msgstr "帶寬限制"
 
-#: applications/luci-app-packagesync/htdocs/luci-static/resources/view/packagesync.js:373
+#: applications/luci-app-packagesync/htdocs/luci-static/resources/view/packagesync.js:381
 msgid "Click to view"
 msgstr "點擊查看"
 
@@ -126,7 +126,7 @@ msgstr "執行同步"
 #: applications/luci-app-packagesync/htdocs/luci-static/resources/view/packagesync.js:312
 #: applications/luci-app-packagesync/htdocs/luci-static/resources/view/packagesync.js:325
 #: applications/luci-app-packagesync/htdocs/luci-static/resources/view/packagesync.js:345
-#: applications/luci-app-packagesync/htdocs/luci-static/resources/view/packagesync.js:353
+#: applications/luci-app-packagesync/htdocs/luci-static/resources/view/packagesync.js:358
 msgid "Expecting: non-empty value"
 msgstr ""
 
@@ -146,11 +146,11 @@ msgstr "授予訪問 LuCI 應用 packagesync 的權限"
 msgid "Home URL"
 msgstr ""
 
-#: applications/luci-app-packagesync/htdocs/luci-static/resources/view/packagesync.js:365
+#: applications/luci-app-packagesync/htdocs/luci-static/resources/view/packagesync.js:373
 msgid "Last Error log"
 msgstr "錯誤日誌"
 
-#: applications/luci-app-packagesync/htdocs/luci-static/resources/view/packagesync.js:362
+#: applications/luci-app-packagesync/htdocs/luci-static/resources/view/packagesync.js:370
 msgid "Last exec result"
 msgstr "執行結果"
 
@@ -182,6 +182,10 @@ msgstr "昵稱"
 #: applications/luci-app-packagesync/htdocs/luci-static/resources/view/packagesync.js:117
 msgid "Open <a href=\"/%s\" target=\"_blank\">URL</a>"
 msgstr "打開 <a href=\"/%s\" target=\"_blank\">URL</a>"
+
+#: applications/luci-app-packagesync/htdocs/luci-static/resources/view/packagesync.js:367
+msgid "Product model"
+msgstr "產品型號"
 
 #: applications/luci-app-packagesync/htdocs/luci-static/resources/view/packagesync.js:202
 msgid "Proxy Protocol"
@@ -216,6 +220,10 @@ msgstr "儲存裝置"
 #: applications/luci-app-packagesync/htdocs/luci-static/resources/view/packagesync.js:334
 msgid "SubTarget"
 msgstr "SubTarget"
+
+#: applications/luci-app-packagesync/htdocs/luci-static/resources/view/packagesync.js:349
+msgid "Supplementary Files"
+msgstr ""
 
 #: applications/luci-app-packagesync/htdocs/luci-static/resources/view/packagesync.js:321
 msgid "Target"

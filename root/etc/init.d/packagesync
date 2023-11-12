@@ -52,6 +52,7 @@ validate_section_release() {
 		'version:string' \
 		'target:string' \
 		'subtarget:string' \
+		'extra:bool:0' \
 		'pkgarch:string'
 }
 
@@ -66,6 +67,7 @@ gen_order() {
 	json_add_string name "$name"
 	json_add_string version "$version"
 	json_add_string target "$target/$subtarget"
+	json_add_boolean extra "$extra"
 	json_add_string arch "$pkgarch"
 	json_close_object
 	orders="$(json_dump)"

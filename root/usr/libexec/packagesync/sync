@@ -32,7 +32,7 @@ BWLIMIT='8000'
 
 
 # Get parameters
-GETOPT=$(getopt -n $(basename $0) -o x:l:d:n:s:t:k:o:V -l proxy:,bwlimit:,homedir:,name:,version:,target:,arch:,orders:,Version,help -- "$@")
+GETOPT=$(getopt -n $(basename $0) -o x:l:d:n:s:t:k:e:o:V -l proxy:,bwlimit:,homedir:,name:,version:,target:,arch:,extra:,orders:,Version,help -- "$@")
 [ $? -ne 0 ] && >&2 echo -e "\tUse the --help option get help" && exit 1
 eval set -- "$GETOPT"
 OPTIONS=$(echo "$GETOPT" | sed -E "s|'[^']*'||g; s| --( .*)?$||")
@@ -50,6 +50,7 @@ echo "$OPTIONS" | grep -E " (-o|--orders)\b" | grep -E " (-n|--name)\b" >/dev/nu
 echo "$OPTIONS" | grep -E " (-o|--orders)\b" | grep -E " (-s|--version)\b" >/dev/null && >&2 echo "$(basename $0): Option '-o|--orders' cannot be used with option '-s|--version'" && exit 1
 echo "$OPTIONS" | grep -E " (-o|--orders)\b" | grep -E " (-t|--target)\b" >/dev/null && >&2 echo "$(basename $0): Option '-o|--orders' cannot be used with option '-t|--target'" && exit 1
 echo "$OPTIONS" | grep -E " (-o|--orders)\b" | grep -E " (-k|--arch)\b" >/dev/null && >&2 echo "$(basename $0): Option '-o|--orders' cannot be used with option '-k|--arch'" && exit 1
+echo "$OPTIONS" | grep -E " (-o|--orders)\b" | grep -E " (-e|--extra)\b" >/dev/null && >&2 echo "$(basename $0): Option '-o|--orders' cannot be used with option '-e|--extra'" && exit 1
 # Required options
 [    -n "$(echo "$OPTIONS" | grep -E " (-d|--homedir)\b" | grep -E " (-s|--version)\b" | grep -E " (-t|--target)\b" | grep -E " (-k|--arch)\b")" \
   -o -n "$(echo "$OPTIONS" | grep -E " (-o|--orders)\b")" \
@@ -75,6 +76,7 @@ Options:\n\
   -s, --version <version>             -- Required option. OpenWRT version\n\
   -t, --target <target/subtarget>     -- Required option. Device target and subtarget\n\
   -k, --arch <pkgarch>                -- Required option. Device architecture\n\
+  -e, --extra <true|false>            -- Optional option. Sync target supplementary. Default is false\n\
   -o, --orders <orders>               -- Required option. Sync multi-versions at once\n\
   -l, --bwlimit <n>[(K|M|G)]          -- Bandwidth limit\n\
   -x, --proxy <protocol://ip:port>    -- Connect using proxy\n\
@@ -123,7 +125,7 @@ parse_json() {
 
   for i in $(seq 0 $[ $count -1 ]); do
     local order="$(eval "jsonfilter -q -s \"\$array\" -e '\$[$i]'")"
-    local ucivv="homedir version target arch name"
+    local ucivv="homedir version target arch extra name"
     for _var in $ucivv; do
       eval "local $_var=\"\$(jsonfilter -q -s \"\$order\" -e '\$.$_var')\""
     done
@@ -131,10 +133,10 @@ parse_json() {
     mkdir -p "$RESULTPATH" 2>/dev/null
     if [ -n "$name" ]; then
       cat /dev/null > "$RESULTPATH/${name}.log"
-      { mirror "$homedir" "$version" "$target" "$arch" 2>&1 1>&3 | tee "$RESULTPATH/${name}.log"; } 3>&1 1>&2 # in bash
+      { mirror "$homedir" "$version" "$target" "$arch" "$extra" 2>&1 1>&3 | tee "$RESULTPATH/${name}.log"; } 3>&1 1>&2 # in bash
       #mirror "$homedir" "$version" "$target" "$arch" 2> >(tee "$RESULTPATH/${name}.log" >&2) # in POSIX shell
     else
-      mirror "$homedir" "$version" "$target" "$arch"
+      mirror "$homedir" "$version" "$target" "$arch" "$extra"
     fi
     local ERROR="$?"
 
@@ -155,13 +157,14 @@ parse_json() {
   return $ERROR
 }
 
-#mirror <local mirror root path> <openwrt version> <target/subtarget> <package arch>
+#mirror <local mirror root path> <openwrt version> <target/subtarget> <package arch> <extra>
 mirror() {
-  local homedir version target arch name ERROR=0
+  local homedir version target arch extra ERROR=0
   homedir="${1:-$HOMEPATH}" && shift
   version="$1" && shift
   target="$1" && shift
   arch="$1" && shift
+  extra="$1" && shift
 
   verify_path "$homedir" || { >&2 echo -e "$(basename $0): No valid <homedir> specified\n\tUse the --help option get help"; ((ERROR++)); }
   verify_order "$version" "$target" "$arch" || { >&2 echo -e "$(basename $0): Order '$version' '$target' '$arch' seems invalid.\n\tPlease check for network or typos"; ((ERROR++)); }
@@ -172,6 +175,10 @@ mirror() {
   sync_package "${homedir}" "${version}" "${arch}" || ((ERROR++))
   echo -e "$(basename $0): '$version' '$target'${kversion:+ 'k${kversion}'} target syncing..."
   sync_target  "${homedir}" "${version}" "${target}" "${kversion}" || ((ERROR++))
+  [ "$extra" == "true" ] && {
+  echo -e "$(basename $0): '$version' '$target' supplementary syncing..."
+  sync_extra   "${homedir}" "${version}" "${target}" || ((ERROR++))
+  }
   [ -n "$module" ] && {
   echo -e "$(basename $0): '$version' '$target' '$module' module syncing..."
   sync_module  "${homedir}" "${version}" "${target}" "${module}" || ((ERROR++))
@@ -217,11 +224,27 @@ sync_target() {
   rsync $ARCHIVE$INFO $COMPAC $PRUNE $PROGR --bwlimit=$BWLIMIT "$RSYNC_URL/${VER}/$URLHREF_VERS_TARGETS/$target/kmods/$kver" "$home/${VER}/$URLHREF_VERS_TARGETS/$target/kmods/" || ((ERROR++))
   #packages
   rsync $ARCHIVE$INFO $COMPAC $PRUNE $PROGR --bwlimit=$BWLIMIT "$RSYNC_URL/${VER}/$URLHREF_VERS_TARGETS/$target/packages" "$home/${VER}/$URLHREF_VERS_TARGETS/$target/" || ((ERROR++))
+
+  return $ERROR
+}
+
+#sync_extra <local mirror root path> <openwrt version> <target/subtarget>
+sync_extra() {
+  local home="${1%/}" && shift
+  local ver="$1" && shift
+  local target="$1" && shift
+
+  local ERROR=0
+
+  local VER="$URLHREF_RELEASES/$ver"
+  mkdir -p "$home/${VER}" 2>/dev/null
+
+  mkdir -p "$home/${VER}/$URLHREF_VERS_TARGETS/$target" 2>/dev/null
   #supplementary
   local table="$(curl --connect-timeout 10 --retry 3 -sSL "$WEB_URL/${VER}/$URLHREF_VERS_TARGETS/$target" | sed -n '/Supplementary Files/,$p' | sed -n '/<table>/,/<\/table>/p')"
   if [ -n "$table" ]; then
     local expr="{$(echo "$table" | sed -En "s|.+\bhref=\"([^\"/]+)\".+|'\1'|gp" | tr '\n' ',' | sed 's|,$||')}"
-    rsync $ARCHIVE$INFO $COMPAC $PRUNE $PROGR --bwlimit=$BWLIMIT --include=$expr --exclude='*' "$RSYNC_URL/${VER}/$URLHREF_VERS_TARGETS/$target/" "$home/${VER}/$URLHREF_VERS_TARGETS/$target/" || ((ERROR++))
+    eval "rsync \$ARCHIVE\$INFO \$COMPAC \$PRUNE \$PROGR --bwlimit=\$BWLIMIT --include=$expr --exclude='*' \"\$RSYNC_URL/\${VER}/\$URLHREF_VERS_TARGETS/\$target/\" \"\$home/\${VER}/\$URLHREF_VERS_TARGETS/\$target/\"" || ((ERROR++))
     #for v in $(echo "$table" | sed -En "s|.+\bhref=\"([^\"/]+)\".+|'\1'|gp"); do
     #  rsync $ARCHIVE$INFO $COMPAC $PRUNE $PROGR --bwlimit=$BWLIMIT "$RSYNC_URL/${VER}/$URLHREF_VERS_TARGETS/$target/${v:1:-1}" "$home/${VER}/$URLHREF_VERS_TARGETS/$target/" || ((ERROR++))
     #done
@@ -336,6 +359,10 @@ fe80:(:[[:xdigit:]]{0,4}){0,4}%\w+|\
       arch="$2"
       shift
     ;;
+    -e|--extra)
+      extra="$2"
+      shift
+    ;;
     -o|--orders)
       JSON="$2"
       shift
@@ -355,7 +382,7 @@ done
 # ...
 
 # Execute
-parse_json "${JSON:=[{'name':'$name','version':'$version','target':'$target','arch':'$arch'\}]}" #|| { >&2 echo -e "$(basename $0): Required options requires valid argument\n\tUse the --help option get help"; exit 1; }
+parse_json "${JSON:=[{'name':'$name','version':'$version','target':'$target','arch':'$arch','extra':${extra:-false}\}]}" #|| { >&2 echo -e "$(basename $0): Required options requires valid argument\n\tUse the --help option get help"; exit 1; }
 exitcode=$?
 rm -f "$PIDFILE" 2>/dev/null
 exit $exitcode

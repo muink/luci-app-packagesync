@@ -346,6 +346,11 @@ return view.extend({
 			return true;
 		};
 
+		o = s.option(form.Flag, 'extra', _('Supplementary Files'));
+		o.default = o.disabled;
+		o.rmempty = false;
+		o.modalonly = true;
+
 		o = s.option(form.Value, 'pkgarch', _('Arch'));
 		o.rmempty = false;
 		o.validate = function(section, value) {

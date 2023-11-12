@@ -364,6 +364,9 @@ return view.extend({
 				o.value(pkgarchslist[i]);
 		};
 
+		o = s.option(form.Value, 'model', _('Product model'));
+		o.rmempty = true;
+
 		o = s.option(form.DummyValue, 'return', _('Last exec result'));
 		o.readonly = true;
 

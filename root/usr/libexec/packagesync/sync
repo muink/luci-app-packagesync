@@ -367,7 +367,7 @@ fe80:(:[[:xdigit:]]{0,4}){0,4}%\w+|\
       shift
     ;;
     -m|--model)
-      extra="$2"
+      model="$2"
       shift
     ;;
     -o|--orders)

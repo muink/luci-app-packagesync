@@ -297,11 +297,8 @@ return view.extend({
 		o.modalonly = true;
 		o.write = function() {};
 		o.onclick = function() {
-			window.setTimeout(function() {
-				window.location = window.location.href.split('#')[0];
-			}, L.env.apply_display * 4500);
-
 			return fs.exec('/etc/init.d/packagesync', ['getinfo'])
+				.then(function(res) { return window.location.reload() })
 				.catch(function(e) { ui.addNotification(null, E('p', e.message), 'error') });
 		};
 

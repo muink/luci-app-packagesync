@@ -61,7 +61,7 @@ gen_order() {
 	[ "$2" == "0" ] || { >&2 echo "section $1 validation failed"; return 1; }
 	[ "$enabled" == "0" ] && return 0
 
-	json_cleanup
+	json_init
 	json_load "$orders"
 	json_select orders
 	json_add_object

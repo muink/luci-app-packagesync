@@ -16,7 +16,7 @@ RESULTPATH='/var/packagesync/results'
 PIDFILE='/var/run/packagesync.pid'
 # url path
 WEB_URL="https://downloads.openwrt.org"
-RSYNC_URL="rsync://downloads.openwrt.org/downloads"
+RSYNC_URL="rsync://rsync.openwrt.org/downloads"
 URLHREF_RELEASES='releases'
 #URLHREF_SNAPSHOTS='snapshots'
 #URLHREF_PACKAGES_PREFIX='packages-' # packages-22.03

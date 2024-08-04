@@ -30,7 +30,7 @@ TARGETS_LIST="/var/packagesync/targetslist"
 PKGARCHS_LIST="/var/packagesync/pkgarchslist"
 RESULTPATH='/var/packagesync/results'
 # url path
-OPENWRT_URL="https://downloads.openwrt.org"
+DOWNLOAD_URL="https://downloads.openwrt.org"
 URLHREF_RELEASES='releases'
 URLHREF_SNAPSHOTS='snapshots'
 URLHREF_PACKAGES_PREFIX='packages-' # packages-22.03
@@ -46,9 +46,9 @@ define_global() {
 	[ "$2" == "0" ] || { >&2 echo "$(basename $0): section $1 validation failed"; return 1; }
 
 	local error=0
-	local v ucivv="home_url bwlimit proxy_enabled proxy_protocol proxy_server"
+	local v ucivv="download_url rsync_url home_url bwlimit proxy_enabled proxy_protocol proxy_server"
 	for v in $ucivv; do
-		[ -z "$(config_get $1 $v)" ] && grep -qEv "^(proxy_protocol|proxy_server)$" <<< "$v" && {
+		[ -z "$(config_get $1 $v)" ] && grep -qEv "^(download_url|rsync_url|proxy_protocol|proxy_server)$" <<< "$v" && {
 			>&2 echo "$(basename $0): section $1 option $v cannot be empty"
 			let error++
 		}
@@ -60,6 +60,8 @@ define_global() {
 
 validate_section_config() {
 	uci_load_validate "$CONFIG_NAME" "$SCONFIG" "$1" "$2" \
+		'download_url:string' \
+		'rsync_url:string' \
 		'home_url:string' \
 		'bwlimit:uinteger:8000' \
 		'auto_exec:bool:1' \
@@ -151,8 +153,9 @@ start_service() {
 }
 
 getinfo() {
-local rawhtml stables releases targets pkgarchs
-rawhtml="$(curl --connect-timeout 10 --retry 3 -sSL "$OPENWRT_URL")"
+validate_section_config "$SCONFIG" define_global
+local rawhtml stables releases targets pkgarchs download_url="${GLOBAL_download_url:-$DOWNLOAD_URL}"
+rawhtml="$(curl --connect-timeout 10 --retry 3 -sSL "$download_url")"
 stables="$( \
 echo "$rawhtml" | sed -n '/Stable Release/,/Development Snapshots/p' \
 | sed -n '/<ul>/,/<\/ul>/p' | grep 'OpenWrt' \
@@ -163,13 +166,13 @@ echo "$rawhtml" | sed -n '/Release Archive/,/\$/p' \
 | sed -n '/<ul>/,/<\/ul>/p' | grep 'OpenWrt' \
 | sed -E "s|.+\breleases/([\.0-9]+)/.+|\1|g" \
 )"
-rawhtml="$(curl --connect-timeout 10 --retry 3 -sSL "$OPENWRT_URL/$URLHREF_RELEASES/$(head -n1 <<< "$stables")/$URLHREF_VERS_TARGETS")"
+rawhtml="$(curl --connect-timeout 10 --retry 3 -sSL "$download_url/$URLHREF_RELEASES/$(head -n1 <<< "$stables")/$URLHREF_VERS_TARGETS")"
 targets="$( \
 echo "$rawhtml" \
 | sed -n '/<table>/,/<\/table>/p' | grep '<a href=' \
 | sed -E "s|.+\bhref=\"([^/]+)/.+|\1|g" \
 )"
-rawhtml="$(curl --connect-timeout 10 --retry 3 -sSL "$OPENWRT_URL/$URLHREF_RELEASES/$(head -n1 <<< "$stables")/$URLHREF_VERS_PACKAGES")"
+rawhtml="$(curl --connect-timeout 10 --retry 3 -sSL "$download_url/$URLHREF_RELEASES/$(head -n1 <<< "$stables")/$URLHREF_VERS_PACKAGES")"
 pkgarchs="$( \
 echo "$rawhtml" \
 | sed -n '/<table>/,/<\/table>/p' | grep '<a href=' \

@@ -15,7 +15,7 @@ JSON=''
 RESULTPATH='/var/packagesync/results'
 PIDFILE='/var/run/packagesync.pid'
 # url path
-WEB_URL="https://downloads.openwrt.org"
+DOWNLOAD_URL="https://downloads.openwrt.org"
 RSYNC_URL="rsync://rsync.openwrt.org/downloads"
 URLHREF_RELEASES='releases'
 #URLHREF_SNAPSHOTS='snapshots'
@@ -108,10 +108,10 @@ verify_order() {
   local version="$1" target="$2" arch="$3"
 
   local HTTPCODE ERROR=0
-  HTTPCODE="$(curl --connect-timeout 10 --retry 3 -sSIL -w "%{http_code}" -o /dev/null "$WEB_URL/$URLHREF_RELEASES/${version:-null}/$URLHREF_VERS_TARGETS/${target:-null}")"
-  [ -n "$(sed -n '/^2\d\d$/p' <<< "$HTTPCODE")" ] || { >&2 echo -e "$(basename $0): Get '$WEB_URL/$URLHREF_RELEASES/${version:-<null>}/$URLHREF_VERS_TARGETS/${target:-<null>}' failed. Code '$HTTPCODE'"; ((ERROR++)); }
-  HTTPCODE="$(curl --connect-timeout 10 --retry 3 -sSIL -w "%{http_code}" -o /dev/null "$WEB_URL/$URLHREF_RELEASES/${version:-null}/$URLHREF_VERS_PACKAGES/${arch:-null}")"
-  [ -n "$(sed -n '/^2\d\d$/p' <<< "$HTTPCODE")" ] || { >&2 echo -e "$(basename $0): Get '$WEB_URL/$URLHREF_RELEASES/${version:-<null>}/$URLHREF_VERS_PACKAGES/${arch:-<null>}' failed. Code '$HTTPCODE'"; ((ERROR++)); }
+  HTTPCODE="$(curl --connect-timeout 10 --retry 3 -sSIL -w "%{http_code}" -o /dev/null "$DOWNLOAD_URL/$URLHREF_RELEASES/${version:-null}/$URLHREF_VERS_TARGETS/${target:-null}")"
+  [ -n "$(sed -n '/^2\d\d$/p' <<< "$HTTPCODE")" ] || { >&2 echo -e "$(basename $0): Get '$DOWNLOAD_URL/$URLHREF_RELEASES/${version:-<null>}/$URLHREF_VERS_TARGETS/${target:-<null>}' failed. Code '$HTTPCODE'"; ((ERROR++)); }
+  HTTPCODE="$(curl --connect-timeout 10 --retry 3 -sSIL -w "%{http_code}" -o /dev/null "$DOWNLOAD_URL/$URLHREF_RELEASES/${version:-null}/$URLHREF_VERS_PACKAGES/${arch:-null}")"
+  [ -n "$(sed -n '/^2\d\d$/p' <<< "$HTTPCODE")" ] || { >&2 echo -e "$(basename $0): Get '$DOWNLOAD_URL/$URLHREF_RELEASES/${version:-<null>}/$URLHREF_VERS_PACKAGES/${arch:-<null>}' failed. Code '$HTTPCODE'"; ((ERROR++)); }
 
   [ "$ERROR" -gt 0 ] && return 1
   return 0
@@ -244,7 +244,7 @@ sync_extra() {
 
   mkdir -p "$home/${VER}/$URLHREF_VERS_TARGETS/$target" 2>/dev/null
   #supplementary
-  local table="$(curl --connect-timeout 10 --retry 3 -sSL "$WEB_URL/${VER}/$URLHREF_VERS_TARGETS/$target" | sed -n '/Supplementary Files/,$p' | sed -n '/<table>/,/<\/table>/p')"
+  local table="$(curl --connect-timeout 10 --retry 3 -sSL "$DOWNLOAD_URL/${VER}/$URLHREF_VERS_TARGETS/$target" | sed -n '/Supplementary Files/,$p' | sed -n '/<table>/,/<\/table>/p')"
   if [ -n "$table" ]; then
     local expr="{$(echo "$table" | sed -En "s|.+\bhref=\"([^\"/]+)\".+|'\1'|gp" | tr '\n' ',' | sed 's|,$||')}"
     eval "rsync \$ARCHIVE\$INFO \$COMPAC \$PRUNE \$PROGR --bwlimit=\$BWLIMIT --include=$expr --exclude='*' \"\$RSYNC_URL/\${VER}/\$URLHREF_VERS_TARGETS/\$target/\" \"\$home/\${VER}/\$URLHREF_VERS_TARGETS/\$target/\"" || ((ERROR++))

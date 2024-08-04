@@ -1,5 +1,5 @@
 #!/bin/bash /etc/rc.common
-# Copyright (C) 2023 muink
+# Copyright (C) 2023-2024 muink
 
 . "${IPKG_INSTROOT}/lib/functions.sh"
 . "${IPKG_INSTROOT}/usr/share/libubox/jshn.sh"

@@ -8,7 +8,7 @@
 # Info
 PKGNAME='packagesync'
 RELEASE='release'
-VERSION="20230219"
+VERSION="20240804"
 #
 HOMEPATH=''
 JSON=''

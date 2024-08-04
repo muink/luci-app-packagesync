@@ -1,5 +1,5 @@
 
-config packagesync
+config packagesync 'config'
 	option home_url 'packagesync'
 	option auto_exec '0'
 	option cron_expression '0 0 * * *'

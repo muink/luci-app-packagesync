@@ -1,0 +1,3 @@
+#!/bin/sh
+
+[ -n "$(uci -q get packagesync.config)" ] || sed -i "s|^config packagesync|config packagesync 'config'|" /etc/config/packagesync

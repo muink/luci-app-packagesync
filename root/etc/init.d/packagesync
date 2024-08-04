@@ -16,7 +16,7 @@ EXTRA_HELP=\
 	cleanup [autorm]	Clean up invalid versions"
 
 CONFIG_NAME='packagesync'
-TYPEDSECTION='packagesync'
+SCONFIG='config'
 RELEASE='release'
 
 MNTPKGS='/mnt/packagesync'
@@ -37,13 +37,37 @@ URLHREF_PACKAGES_PREFIX='packages-' # packages-22.03
 URLHREF_VERS_PACKAGES='packages'
 URLHREF_VERS_TARGETS='targets'
 
-if [ "$(uci -q get $CONFIG_NAME.@$TYPEDSECTION[0].proxy_enabled)" == "1" ]; then
-    export ALL_PROXY=$(uci -q get $CONFIG_NAME.@$TYPEDSECTION[0].proxy_protocol)://$(uci -q get $CONFIG_NAME.@$TYPEDSECTION[0].proxy_server)
-fi
-
 config_load $CONFIG_NAME
 
 
+
+# define global var: GLOBAL_*
+define_global() {
+	[ "$2" == "0" ] || { >&2 echo "$(basename $0): section $1 validation failed"; return 1; }
+
+	local error=0
+	local v ucivv="home_url bwlimit proxy_enabled proxy_protocol proxy_server"
+	for v in $ucivv; do
+		[ -z "$(config_get $1 $v)" ] && grep -qEv "^(proxy_protocol|proxy_server)$" <<< "$v" && {
+			>&2 echo "$(basename $0): section $1 option $v cannot be empty"
+			let error++
+		}
+		config_get GLOBAL_$v $1 $v
+	done
+
+	[ "$error" -gt 0 ] && return 1 || return 0
+}
+
+validate_section_config() {
+	uci_load_validate "$CONFIG_NAME" "$SCONFIG" "$1" "$2" \
+		'home_url:string' \
+		'bwlimit:uinteger:8000' \
+		'auto_exec:bool:1' \
+		'cron_expression:string' \
+		'proxy_enabled:bool:0' \
+		'proxy_protocol:string:socks5' \
+		'proxy_server:string'
+}
 
 validate_section_release() {
 	uci_load_validate $CONFIG_NAME $RELEASE "$1" "$2" \
@@ -95,11 +119,14 @@ start_service() {
 	# mount point check
 	[ -n "$(df -hT|grep "$MNTPKGS")" ] || return 1
 
-	local homeurl homepath bwlimit
-	eval "homeurl=\$CONFIG_${CONFIG_SECTIONS%% *}_home_url"
-	[ -n "$homeurl" ] && homepath="/www/$homeurl" || homepath="$DEF_HOMEPATH"
+	validate_section_config "$SCONFIG" define_global || return $?
+	local homepath bwlimit
+	[ -n "$GLOBAL_home_url" ] && homepath="/www/$GLOBAL_home_url" || homepath="$DEF_HOMEPATH"
 	[ -d "$homepath" ] || { >&2 echo -e "$CONFIG_NAME: The Home Path '$homepath' is invalid. please check the 'home_url'"; return 1; }
-	eval "bwlimit=\$CONFIG_${CONFIG_SECTIONS%% *}_bwlimit"
+	bwlimit="$GLOBAL_bwlimit"
+	[ "$GLOBAL_proxy_enabled" = "1" ] && {
+		export ALL_PROXY=$GLOBAL_proxy_protocol://$GLOBAL_proxy_server
+	}
 
 	local orders='{ "orders": [] }'
 	config_foreach validate_section_release $RELEASE gen_order
@@ -162,15 +189,14 @@ echo "$pkgarchs"
 echo "$pkgarchs" > "$PKGARCHS_LIST"
 }
 
-gethomeurl() {
-home_url="$1" home_path=
-[ -z "$home_url" ] && home_url="$(uci -q get $CONFIG_NAME.@$TYPEDSECTION[0].home_url)"
+gethome() {
+home_url="${1:-$(uci -q get $CONFIG_NAME.$SCONFIG.home_url)}"
 home_url="${home_url:-$DEF_HOMEURL}"
 home_path="/www/$home_url"
 }
 
 checkln() {
-gethomeurl
+gethome
 
 # clean up old symlink
 ls -l /www|grep "\-> $MNTPKGS"|grep -v " $home_url -> $MNTPKGS"|sed -En "s,.+ ('.+'|\S+) -> ${MNTPKGS}$,'/www/\1',p" | xargs rm -f 
@@ -179,7 +205,7 @@ find /www/* ! -type l -maxdepth 0|sed "s|.*/||g"
 }
 
 symln() {
-gethomeurl "$1"
+gethome "$1"
 
 # make mount dir
 [ -e "$home_path" ] || { ln -s "$MNTPKGS" "$home_path" 2>/dev/null; ln -s "$RESULTPATH" "$home_path/results" 2>/dev/null; return 0; }
@@ -208,7 +234,7 @@ cleanup_regex() {
 
 cleanup() {
 local autorm="$1"
-gethomeurl
+gethome
 
 local count targets packages pkgarchs
 [ -d "$home_path/$URLHREF_RELEASES" ] || return 1

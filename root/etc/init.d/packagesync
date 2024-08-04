@@ -78,9 +78,9 @@ validate_section_release() {
 		'version:string' \
 		'target:string' \
 		'subtarget:string' \
-		'extra:bool:0' \
 		'pkgarch:string' \
-		'model:string'
+		'model:string' \
+		'extra:bool:0'
 }
 
 gen_order() {
@@ -94,9 +94,9 @@ gen_order() {
 	json_add_string name "$name"
 	json_add_string version "$version"
 	json_add_string target "$target/$subtarget"
-	json_add_boolean extra "$extra"
 	json_add_string arch "$pkgarch"
 	json_add_string model "$model"
+	json_add_boolean extra "$extra"
 	json_close_object
 	orders="$(json_dump)"
 }

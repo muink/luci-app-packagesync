@@ -7,7 +7,8 @@
 include $(TOPDIR)/rules.mk
 
 LUCI_NAME:=luci-app-packagesync
-PKG_VERSION:=20240815
+PKG_VERSION:=0.2024.08.15
+PKG_RELEASE:=1
 
 LUCI_TITLE:=LuCI Local software source
 LUCI_DEPENDS:=+blockd +curl +getopt +rsync +bash +jsonfilter +ncat-full

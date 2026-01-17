@@ -106,7 +106,6 @@ sync_instance() {
 	procd_open_instance 'sync'
 	procd_set_param command "$SYNCEXE" -o "$1"
 	procd_append_param command -l "$bwlimit" -d "$homepath" ${ALL_PROXY:+-x $ALL_PROXY} \
-		${GLOBAL_download_url:+--downloadurl "$GLOBAL_download_url"} \
 		${GLOBAL_rsync_url:+--rsyncurl "$GLOBAL_rsync_url"}
 	#procd_set_param respawn
 	#procd_set_param stdout 1

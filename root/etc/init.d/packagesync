@@ -174,38 +174,44 @@ getinfo() {
 	echo -e "$stables\n$releases" > "$RELEASES_LIST"
 
 	# Targets
-	rawhtml="$(curl --connect-timeout 10 --retry 3 -sSL "$download_url/$URLHREF_RELEASES/$(head -n1 <<< "$stables")/$URLHREF_VERS_TARGETS/")"
-	targets="$( \
-	echo "$rawhtml" \
-	| sed -n '/<table>/,/<\/table>/p' | grep '<a href=' \
-	| sed -E "s|.+\bhref=\"([^/]+)/.+|\1|g" \
-	)"
-	## subTargets
-	fulltargets="$( \
-	for target in $targets; do
-		subtargets="$(curl -sL "$download_url/$URLHREF_RELEASES/$(head -n1 <<< "$stables")/$URLHREF_VERS_TARGETS/$target/" \
-			| sed -n '/<table>/,/<\/table>/p' | grep '<a href=' \
-			| sed -E "s|.+\bhref=\"([^/]+)/.+|\1|g" \
+	for stable in $stables; do
+		rawhtml="$(curl --connect-timeout 10 --retry 3 -sSL "$download_url/$URLHREF_RELEASES/$stable/$URLHREF_VERS_TARGETS/")"
+		targets="$( \
+		echo "$rawhtml" \
+		| grep -E '<a href=.+\d+:\d+' \
+		| sed -E "s|.+\bhref=\"([^/]+)/.+|\1|g" \
 		)"
-		for subtarget in $subtargets; do sed "s|^|$target/|" <<< "$subtarget"; done
-	done \
-	)"
+		## subTargets
+		fulltargets="$( \
+		for target in $targets; do
+			subtargets="$(curl -sL "$download_url/$URLHREF_RELEASES/$stable/$URLHREF_VERS_TARGETS/$target/" \
+			| grep -E '<a href=.+\d+:\d+' \
+			| sed -E "s|.+\bhref=\"([^/]+)/.+|\1|g" \
+			)"
+			for subtarget in $subtargets; do sed "s|^|$target/|" <<< "$subtarget"; done
+		done \
+		)"
+		fulltargetss="$(echo -e "$fulltargetss\n$fulltargets" | sort -u | grep -v '^$')"
+	done
 	mkdir -p "${TARGETS_LIST%/*}" 2>/dev/null
 	echo "Targets:"
-	echo "$fulltargets"
-	echo "$fulltargets" > "$TARGETS_LIST"
+	echo "$fulltargetss"
+	echo "$fulltargetss" > "$TARGETS_LIST"
 
 	# Archs
-	rawhtml="$(curl --connect-timeout 10 --retry 3 -sSL "$download_url/$URLHREF_RELEASES/$(head -n1 <<< "$stables")/$URLHREF_VERS_PACKAGES/")"
-	pkgarchs="$( \
-	echo "$rawhtml" \
-	| sed -n '/<table>/,/<\/table>/p' | grep '<a href=' \
-	| sed -E "s|.+\bhref=\"([^/]+)/.+|\1|g" \
-	)"
+	for stable in $stables; do
+		rawhtml="$(curl --connect-timeout 10 --retry 3 -sSL "$download_url/$URLHREF_RELEASES/$stable/$URLHREF_VERS_PACKAGES/")"
+		pkgarchs="$( \
+		echo "$rawhtml" \
+		| grep -E '<a href=.+\d+:\d+' \
+		| sed -E "s|.+\bhref=\"([^/]+)/.+|\1|g" \
+		)"
+		pkgarchss="$(echo -e "$pkgarchss\n$pkgarchs" | sort -u | grep -v '^$')"
+	done
 	mkdir -p "${PKGARCHS_LIST%/*}" 2>/dev/null
 	echo "PKGArchs:"
-	echo "$pkgarchs"
-	echo "$pkgarchs" > "$PKGARCHS_LIST"
+	echo "$pkgarchss"
+	echo "$pkgarchss" > "$PKGARCHS_LIST"
 }
 
 gethome() {
